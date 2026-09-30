@@ -12,7 +12,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- QRCode Generator (Auto-detection & UTF-8 support) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-    <!-- Default Assets (Fabiano Braga 4U Flagship) -->
+    <!-- Default Assets (fbr4g4 4U Flagship) -->
     <script src="assets/defaults.js"></script>
     <style>
         * {
@@ -2036,7 +2036,7 @@
         // Ready-to-use Professional Presets
         const professionalPresets = {
             engenheiro: {
-                nome: 'Fabiano Braga',
+                nome: 'fbr4g4',
                 cargo: 'Engenheiro de Software & Fundador',
                 empresa: '4U.IA.BR // Engenharia e Pesquisa',
                 bio: 'Desenvolvimento de soluções Web & SaaS de alta performance, WASM, criptografia client-side e inteligência soberana.',
@@ -2048,7 +2048,7 @@
                 endereco: '',
                 pixTipo: 'aleatoria',
                 pixChave: '',
-                pixNome: 'Fabiano Braga',
+                pixNome: 'fbr4g4',
                 togglePix: false,
                 instagram: 'https://www.instagram.com/fbr4g4/',
                 linkedin: 'https://www.linkedin.com/in/fbr4g4/?isSelfProfile=true',
@@ -3056,7 +3056,7 @@
         // ==========================================================================
         // LOCAL STORAGE & PRESETS MANAGEMENT
         // ==========================================================================
-        const STORAGE_KEY = 'cardcraft_pro_v2';
+        const STORAGE_KEY = 'cardcraft_pro_v3';
 
         function saveToLocalStorage() {
             const state = {
@@ -3230,7 +3230,7 @@
 
         // Modal for Presets Picker
         function openPresetModal() {
-            const choice = prompt("Escolha o template que deseja carregar:\n1 - Fabiano Braga (4U.IA.BR Flagship)\n2 - Advocacia & Consultoria\n3 - Médico & Especialista de Saúde\n4 - Designer & Artista Visual\n\nDigite 1, 2, 3 ou 4:");
+            const choice = prompt("Escolha o template que deseja carregar:\n1 - fbr4g4 (4U.IA.BR Flagship)\n2 - Advocacia & Consultoria\n3 - Médico & Especialista de Saúde\n4 - Designer & Artista Visual\n\nDigite 1, 2, 3 ou 4:");
             if (choice === '1') applyPreset('engenheiro');
             else if (choice === '2') applyPreset('advogada');
             else if (choice === '3') applyPreset('medico');
