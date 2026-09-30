@@ -1012,6 +1012,8 @@
             align-items: center;
             justify-content: center;
             box-shadow: 0 0 20px rgba(16, 185, 129, 0.35);
+            position: relative;
+            z-index: 1;
         }
 
         .avatar-img {
@@ -1021,6 +1023,8 @@
             object-fit: cover;
             background: #1e293b;
             display: block;
+            position: relative;
+            z-index: 2;
         }
 
         .card-name {
@@ -1247,6 +1251,8 @@
             border: 2px solid #10b981;
             flex-shrink: 0;
             background: #1e293b;
+            position: relative;
+            z-index: 2;
         }
 
         .physical-helper-tip {
@@ -2251,22 +2257,33 @@
                 const img = new Image();
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    const maxDim = (type === 'avatar') ? 360 : 700;
-                    let w = img.width;
-                    let h = img.height;
-                    if (w > maxDim || h > maxDim) {
-                        if (w > h) {
-                            h = Math.round((h * maxDim) / w);
-                            w = maxDim;
-                        } else {
-                            w = Math.round((w * maxDim) / h);
-                            h = maxDim;
+                    if (type === 'avatar') {
+                        const dim = Math.min(img.width, img.height);
+                        const sx = Math.floor((img.width - dim) / 2);
+                        const sy = Math.floor((img.height - dim) / 2);
+                        const outDim = Math.min(dim, 360);
+                        canvas.width = outDim;
+                        canvas.height = outDim;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, sx, sy, dim, dim, 0, 0, outDim, outDim);
+                    } else {
+                        let w = img.width;
+                        let h = img.height;
+                        const maxDim = 700;
+                        if (w > maxDim || h > maxDim) {
+                            if (w > h) {
+                                h = Math.round((h * maxDim) / w);
+                                w = maxDim;
+                            } else {
+                                w = Math.round((w * maxDim) / h);
+                                h = maxDim;
+                            }
                         }
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
                     }
-                    canvas.width = w;
-                    canvas.height = h;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, w, h);
                     // Always PNG for avatar (transparent/clean) and JPEG for banner (lightweight)
                     const safeDataUrl = (type === 'avatar') ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.9);
 
@@ -2866,6 +2883,34 @@
             showToast('Página HTML exportada com sucesso!');
         }
 
+        // Unified Robust Canvas Capture with Stacking Context Enforcement
+        async function captureCardCanvas(element, scale = 3) {
+            return await html2canvas(element, {
+                scale: scale,
+                useCORS: true,
+                logging: false,
+                backgroundColor: null,
+                onclone: (clonedDoc) => {
+                    // Force avatar images and rings to strict stacking order so gradients never cover avatars
+                    const av = clonedDoc.getElementById('previewAvatar');
+                    if (av) {
+                        av.style.position = 'relative';
+                        av.style.zIndex = '10';
+                    }
+                    const ring = clonedDoc.getElementById('previewAvatarRing');
+                    if (ring) {
+                        ring.style.position = 'relative';
+                        ring.style.zIndex = '1';
+                    }
+                    const physAv = clonedDoc.getElementById('physAvatarFront');
+                    if (physAv) {
+                        physAv.style.position = 'relative';
+                        physAv.style.zIndex = '10';
+                    }
+                }
+            });
+        }
+
         // 2. Export PDF with Clickable Links via jsPDF
         async function exportPDFDocument() {
             const { jsPDF } = window.jspdf;
@@ -2885,12 +2930,12 @@
                     // 1. Capture Front Side
                     frontEl.style.display = 'flex';
                     backEl.style.display = 'none';
-                    const canvasFront = await html2canvas(frontEl, { scale: 3, useCORS: true, backgroundColor: null });
+                    const canvasFront = await captureCardCanvas(frontEl, 3);
 
                     // 2. Capture Back Side
                     frontEl.style.display = 'none';
                     backEl.style.display = 'flex';
-                    const canvasBack = await html2canvas(backEl, { scale: 3, useCORS: true, backgroundColor: null });
+                    const canvasBack = await captureCardCanvas(backEl, 3);
 
                     // Restore user's current view
                     frontEl.style.display = origFrontDisplay;
@@ -2922,12 +2967,7 @@
 
                 // Digital Card Mode
                 const targetEl = document.getElementById('cardPreviewDigital');
-                const canvas = await html2canvas(targetEl, {
-                    scale: 3,
-                    useCORS: true,
-                    logging: false,
-                    backgroundColor: null
-                });
+                const canvas = await captureCardCanvas(targetEl, 3);
 
                 const imgData = canvas.toDataURL('image/png');
                 const cardWidth = targetEl.offsetWidth;
@@ -2985,12 +3025,7 @@
                     const targetEl = isBack ? backEl : frontEl;
                     const sideName = isBack ? 'verso' : 'frente';
 
-                    const canvas = await html2canvas(targetEl, {
-                        scale: 3,
-                        useCORS: true,
-                        logging: false,
-                        backgroundColor: null
-                    });
+                    const canvas = await captureCardCanvas(targetEl, 3);
 
                     const link = document.createElement('a');
                     link.download = `${nome.replace(/\s+/g, '_').toLowerCase()}_cartao_fisico_${sideName}.${format}`;
@@ -3002,12 +3037,7 @@
 
                 // Digital Card Mode
                 const targetEl = document.getElementById('cardPreviewDigital');
-                const canvas = await html2canvas(targetEl, {
-                    scale: 3,
-                    useCORS: true,
-                    logging: false,
-                    backgroundColor: null
-                });
+                const canvas = await captureCardCanvas(targetEl, 3);
 
                 const link = document.createElement('a');
                 link.download = `${nome.replace(/\s+/g, '_').toLowerCase()}_cartao_digital.${format}`;
@@ -3123,7 +3153,7 @@
                     targetEl = document.getElementById('cardPreviewDigital');
                 }
 
-                const canvas = await html2canvas(targetEl, { scale: 2, useCORS: true, backgroundColor: null });
+                const canvas = await captureCardCanvas(targetEl, 2);
 
                 if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
                     try {
@@ -3195,7 +3225,7 @@
         // ==========================================================================
         // LOCAL STORAGE & PRESETS MANAGEMENT
         // ==========================================================================
-        const STORAGE_KEY = 'cardcraft_pro_v4';
+        const STORAGE_KEY = 'cardcraft_pro_v5';
 
         function saveToLocalStorage() {
             const state = {
