@@ -1249,6 +1249,26 @@
             background: #1e293b;
         }
 
+        .physical-helper-tip {
+            font-size: 11.5px;
+            color: var(--accent-cyan);
+            background: rgba(6, 182, 212, 0.08);
+            border: 1px solid rgba(6, 182, 212, 0.25);
+            padding: 7px 16px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .physical-helper-tip:hover {
+            background: rgba(6, 182, 212, 0.18);
+            border-color: rgba(6, 182, 212, 0.5);
+            transform: translateY(-1px);
+        }
+
         .physical-front-name {
             font-size: 18px;
             font-weight: 700;
@@ -1940,7 +1960,7 @@
 
                     <!-- Physical Business Card View (85x55mm) -->
                     <div class="physical-card-wrapper" id="containerPhysicalView">
-                        <div class="physical-card-flipper">
+                        <div class="physical-card-flipper" onclick="flipPhysicalCardInteractive()" style="cursor: pointer;" title="Clique para virar o cartão">
                             <!-- Front Side -->
                             <div class="physical-card-face physical-card-front" id="cardPhysicalFront">
                                 <div class="physical-front-header">
@@ -1969,6 +1989,9 @@
                                     <div class="physical-back-qr" id="physBackQr"></div>
                                 </div>
                             </div>
+                        </div>
+                        <div class="physical-helper-tip" onclick="flipPhysicalCardInteractive()">
+                            <i class="fas fa-arrows-rotate"></i> Clique no cartão para virar Frente ↔ Verso (85×55 mm Gráfica)
                         </div>
                     </div>
 
@@ -2225,21 +2248,47 @@
         function processImageFile(file, type) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                const dataUrl = e.target.result;
-                if (type === 'avatar') {
-                    avatarDataUrl = dataUrl;
-                    document.getElementById('avatarPlaceholder').style.display = 'none';
-                    document.getElementById('avatarActive').style.display = 'flex';
-                    document.getElementById('thumbAvatar').src = dataUrl;
-                } else if (type === 'banner') {
-                    bannerDataUrl = dataUrl;
-                    document.getElementById('bannerPlaceholder').style.display = 'none';
-                    document.getElementById('bannerActive').style.display = 'flex';
-                    document.getElementById('thumbBanner').src = dataUrl;
-                }
-                updateLivePreview();
-                saveToLocalStorage();
-                showToast('Imagem carregada com sucesso!');
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const maxDim = (type === 'avatar') ? 360 : 700;
+                    let w = img.width;
+                    let h = img.height;
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) {
+                            h = Math.round((h * maxDim) / w);
+                            w = maxDim;
+                        } else {
+                            w = Math.round((w * maxDim) / h);
+                            h = maxDim;
+                        }
+                    }
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    // Always PNG for avatar (transparent/clean) and JPEG for banner (lightweight)
+                    const safeDataUrl = (type === 'avatar') ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.9);
+
+                    if (type === 'avatar') {
+                        avatarDataUrl = safeDataUrl;
+                        document.getElementById('avatarPlaceholder').style.display = 'none';
+                        document.getElementById('avatarActive').style.display = 'flex';
+                        document.getElementById('thumbAvatar').src = safeDataUrl;
+                    } else if (type === 'banner') {
+                        bannerDataUrl = safeDataUrl;
+                        document.getElementById('bannerPlaceholder').style.display = 'none';
+                        document.getElementById('bannerActive').style.display = 'flex';
+                        document.getElementById('thumbBanner').src = safeDataUrl;
+                    }
+                    updateLivePreview();
+                    saveToLocalStorage();
+                    showToast('Imagem processada com sucesso!');
+                };
+                img.onerror = () => {
+                    showToast('Erro ao ler a imagem. Tente outro arquivo.');
+                };
+                img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
@@ -2320,6 +2369,12 @@
                 btnFront.classList.remove('active');
                 btnBack.classList.add('active');
             }
+        }
+
+        function flipPhysicalCardInteractive() {
+            const back = document.getElementById('cardPhysicalBack');
+            const isBack = (back.style.display === 'flex');
+            togglePhysicalFace(isBack ? 'front' : 'back');
         }
 
         // Custom Links Functions
@@ -2814,19 +2869,59 @@
         // 2. Export PDF with Clickable Links via jsPDF
         async function exportPDFDocument() {
             const { jsPDF } = window.jspdf;
-            const nome = document.getElementById('inputNome').value.trim() || 'Cartao';
+            const nome = document.getElementById('inputNome').value.trim() || 'fbr4g4';
             showToast('Processando PDF em alta definição...');
 
             try {
-                let targetEl = null;
-                let isPhysical = (cardMode === 'physical');
+                const isPhysical = (cardMode === 'physical');
 
                 if (isPhysical) {
-                    targetEl = document.getElementById('cardPhysicalFront');
-                } else {
-                    targetEl = document.getElementById('cardPreviewDigital');
+                    const frontEl = document.getElementById('cardPhysicalFront');
+                    const backEl = document.getElementById('cardPhysicalBack');
+
+                    const origFrontDisplay = frontEl.style.display;
+                    const origBackDisplay = backEl.style.display;
+
+                    // 1. Capture Front Side
+                    frontEl.style.display = 'flex';
+                    backEl.style.display = 'none';
+                    const canvasFront = await html2canvas(frontEl, { scale: 3, useCORS: true, backgroundColor: null });
+
+                    // 2. Capture Back Side
+                    frontEl.style.display = 'none';
+                    backEl.style.display = 'flex';
+                    const canvasBack = await html2canvas(backEl, { scale: 3, useCORS: true, backgroundColor: null });
+
+                    // Restore user's current view
+                    frontEl.style.display = origFrontDisplay;
+                    backEl.style.display = origBackDisplay;
+
+                    const imgFront = canvasFront.toDataURL('image/png');
+                    const imgBack = canvasBack.toDataURL('image/png');
+
+                    const pdfWidth = 85; // mm standard ABNT
+                    const pdfHeight = 55; // mm standard ABNT
+
+                    const pdf = new jsPDF({
+                        orientation: 'landscape',
+                        unit: 'mm',
+                        format: [pdfWidth, pdfHeight]
+                    });
+
+                    // Page 1: Frente (Front)
+                    pdf.addImage(imgFront, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+                    // Page 2: Verso (Back with QR Code)
+                    pdf.addPage([pdfWidth, pdfHeight], 'landscape');
+                    pdf.addImage(imgBack, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+                    pdf.save(`${nome.replace(/\s+/g, '_').toLowerCase()}_cartao_fisico_frente_verso.pdf`);
+                    showToast('PDF para Gráfica (Frente e Verso 85x55mm) gerado com sucesso!');
+                    return;
                 }
 
+                // Digital Card Mode
+                const targetEl = document.getElementById('cardPreviewDigital');
                 const canvas = await html2canvas(targetEl, {
                     scale: 3,
                     useCORS: true,
@@ -2839,7 +2934,7 @@
                 const cardHeight = targetEl.offsetHeight;
                 const aspectRatio = cardHeight / cardWidth;
 
-                let pdfWidth = isPhysical ? 85 : 80;
+                let pdfWidth = 80;
                 let pdfHeight = pdfWidth * aspectRatio;
 
                 const pdf = new jsPDF({
@@ -2869,7 +2964,7 @@
                     }
                 });
 
-                pdf.save(`${nome.replace(/\s+/g, '_').toLowerCase()}_cartao.pdf`);
+                pdf.save(`${nome.replace(/\s+/g, '_').toLowerCase()}_cartao_digital.pdf`);
                 showToast('PDF gerado com links clicáveis!');
             } catch (err) {
                 console.error(err);
@@ -2879,14 +2974,34 @@
 
         // 3. Export Image (PNG / JPG 300 DPI)
         async function exportImageCapture(format = 'png') {
-            const nome = document.getElementById('inputNome').value.trim() || 'Cartao';
+            const nome = document.getElementById('inputNome').value.trim() || 'fbr4g4';
             showToast('Capturando imagem em 300 DPI...');
 
             try {
-                const targetEl = (cardMode === 'physical') 
-                    ? (document.getElementById('cardPhysicalFront').style.display !== 'none' ? document.getElementById('cardPhysicalFront') : document.getElementById('cardPhysicalBack'))
-                    : document.getElementById('cardPreviewDigital');
+                if (cardMode === 'physical') {
+                    const frontEl = document.getElementById('cardPhysicalFront');
+                    const backEl = document.getElementById('cardPhysicalBack');
+                    const isBack = (backEl.style.display === 'flex');
+                    const targetEl = isBack ? backEl : frontEl;
+                    const sideName = isBack ? 'verso' : 'frente';
 
+                    const canvas = await html2canvas(targetEl, {
+                        scale: 3,
+                        useCORS: true,
+                        logging: false,
+                        backgroundColor: null
+                    });
+
+                    const link = document.createElement('a');
+                    link.download = `${nome.replace(/\s+/g, '_').toLowerCase()}_cartao_fisico_${sideName}.${format}`;
+                    link.href = canvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
+                    link.click();
+                    showToast(`Imagem do ${sideName.toUpperCase()} do cartão baixada em 300 DPI!`);
+                    return;
+                }
+
+                // Digital Card Mode
+                const targetEl = document.getElementById('cardPreviewDigital');
                 const canvas = await html2canvas(targetEl, {
                     scale: 3,
                     useCORS: true,
@@ -2895,10 +3010,10 @@
                 });
 
                 const link = document.createElement('a');
-                link.download = `${nome.replace(/\s+/g, '_').toLowerCase()}_cartao.${format}`;
+                link.download = `${nome.replace(/\s+/g, '_').toLowerCase()}_cartao_digital.${format}`;
                 link.href = canvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
                 link.click();
-                showToast('Imagem exportada com nitidez máxima!');
+                showToast('Imagem exportada com nitidez máxima (300 DPI)!');
             } catch (err) {
                 console.error(err);
                 showToast('Erro ao exportar imagem.');
@@ -2964,9 +3079,9 @@
             return vcf;
         }
 
-        // Web Share Direct Trigger
+        // Web Share Direct Trigger (Mobile native share or Desktop clipboard fallback)
         async function triggerWebShare() {
-            const nome = document.getElementById('inputNome').value.trim() || 'Meu Cartão Digital';
+            const nome = document.getElementById('inputNome').value.trim() || 'fbr4g4';
             const cargo = document.getElementById('inputCargo').value.trim() || '';
             const site = document.getElementById('inputWebsite').value.trim() || window.location.href;
 
@@ -2974,39 +3089,63 @@
                 try {
                     await navigator.share({
                         title: `${nome} - Cartão Digital`,
-                        text: `Olá! Aqui está meu cartão de visitas digital (${cargo}):`,
+                        text: `Olá! Aqui está o cartão de visitas digital de ${nome} (${cargo}):`,
                         url: site
                     });
                     showToast('Compartilhado com sucesso!');
+                    return;
                 } catch (e) {
-                    console.log('Share cancelado', e);
+                    if (e.name !== 'AbortError') {
+                        console.warn('Web Share API error:', e);
+                    }
                 }
-            } else {
-                navigator.clipboard.writeText(site);
-                showToast('Link do website copiado para a área de transferência!');
+            }
+
+            // Fallback for Desktop / browsers without Web Share
+            try {
+                await navigator.clipboard.writeText(site);
+                showToast('✓ Link copiado para a área de transferência!');
+            } catch (clipErr) {
+                prompt('Copie o link abaixo:', site);
             }
         }
 
-        // Copy Card to Clipboard as Image
+        // Copy Card to Clipboard as Image (with automatic download fallback)
         async function copyCardImageToClipboard() {
             try {
-                showToast('Renderizando imagem para área de transferência...');
-                const targetEl = (cardMode === 'physical') 
-                    ? document.getElementById('cardPhysicalFront') 
-                    : document.getElementById('cardPreviewDigital');
+                showToast('Renderizando imagem...');
+                let targetEl = null;
+                if (cardMode === 'physical') {
+                    const frontEl = document.getElementById('cardPhysicalFront');
+                    const backEl = document.getElementById('cardPhysicalBack');
+                    targetEl = (backEl.style.display === 'flex') ? backEl : frontEl;
+                } else {
+                    targetEl = document.getElementById('cardPreviewDigital');
+                }
 
                 const canvas = await html2canvas(targetEl, { scale: 2, useCORS: true, backgroundColor: null });
-                canvas.toBlob(async (blob) => {
-                    if (navigator.clipboard && navigator.clipboard.write) {
+
+                if (navigator.clipboard && typeof ClipboardItem !== 'undefined') {
+                    try {
+                        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
                         await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-                        showToast('Cartão copiado! Cole direto no WhatsApp ou Slack (Ctrl+V).');
-                    } else {
-                        showToast('Seu navegador não suporta colar imagem diretamente.');
+                        showToast('✓ Cartão copiado! Cole no WhatsApp ou Slack (Ctrl+V).');
+                        return;
+                    } catch (clipErr) {
+                        console.warn('Clipboard write image failed, falling back to download:', clipErr);
                     }
-                });
+                }
+
+                // Fallback: download PNG image if clipboard is restricted by browser policy
+                const a = document.createElement('a');
+                const nome = document.getElementById('inputNome').value.trim() || 'cartao';
+                a.download = `${nome.replace(/\s+/g, '_').toLowerCase()}_cartao.png`;
+                a.href = canvas.toDataURL('image/png');
+                a.click();
+                showToast('Área de transferência restrita. A imagem PNG foi baixada!');
             } catch (err) {
-                console.error(err);
-                showToast('Erro ao copiar imagem.');
+                console.error('Erro ao processar imagem:', err);
+                showToast('Não foi possível processar a imagem.');
             }
         }
 
@@ -3056,7 +3195,7 @@
         // ==========================================================================
         // LOCAL STORAGE & PRESETS MANAGEMENT
         // ==========================================================================
-        const STORAGE_KEY = 'cardcraft_pro_v3';
+        const STORAGE_KEY = 'cardcraft_pro_v4';
 
         function saveToLocalStorage() {
             const state = {
