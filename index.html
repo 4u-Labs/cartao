@@ -1,0 +1,3275 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardCraft Pro - Gerador de Cartões Digitais & Físicos</title>
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- html2canvas & jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- QRCode Generator (Auto-detection & UTF-8 support) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+    <!-- Default Assets (Fabiano Braga 4U Flagship) -->
+    <script src="assets/defaults.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        :root {
+            --primary: #8b5cf6;
+            --primary-glow: rgba(139, 92, 246, 0.4);
+            --accent-cyan: #06b6d4;
+            --accent-emerald: #10b981;
+            --bg-dark: #0b0f19;
+            --bg-card: rgba(255, 255, 255, 0.04);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --text-main: #ffffff;
+            --text-dim: rgba(255, 255, 255, 0.6);
+        }
+
+        body {
+            background: linear-gradient(135deg, #0b0f19 0%, #111827 50%, #162035 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Ambient Animated Shapes */
+        .floating-shapes {
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            animation: floatShape 22s infinite ease-in-out alternate;
+        }
+
+        .shape-1 {
+            width: 320px;
+            height: 320px;
+            background: rgba(139, 92, 246, 0.12);
+            top: 40px;
+            left: -80px;
+        }
+
+        .shape-2 {
+            width: 420px;
+            height: 420px;
+            background: rgba(6, 182, 212, 0.1);
+            top: 45%;
+            right: -100px;
+            animation-delay: -6s;
+        }
+
+        .shape-3 {
+            width: 260px;
+            height: 260px;
+            background: rgba(16, 185, 129, 0.1);
+            bottom: 60px;
+            left: 20%;
+            animation-delay: -12s;
+        }
+
+        @keyframes floatShape {
+            0% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-40px) scale(1.08) rotate(20deg); }
+            100% { transform: translateY(30px) scale(0.95) rotate(-20deg); }
+        }
+
+        /* Glassmorphism Containers */
+        .glass {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glass);
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
+        }
+
+        .container {
+            max-width: 1360px;
+            margin: 0 auto;
+            padding: 0 20px;
+            width: 100%;
+        }
+
+        /* Header Navigation */
+        .header {
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(11, 15, 25, 0.7);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #0b0f19;
+            box-shadow: 0 0 24px rgba(16, 185, 129, 0.35);
+        }
+
+        .logo-text h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+            background: linear-gradient(135deg, #ffffff 40%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-text p {
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-emerald);
+            letter-spacing: 0.5px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-preset {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-preset:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .btn-preset-accent {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.35);
+            color: #34d399;
+        }
+
+        .btn-preset-accent:hover {
+            background: rgba(16, 185, 129, 0.25);
+            border-color: #10b981;
+        }
+
+        .sovereign-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            background: rgba(6, 182, 212, 0.12);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(6, 182, 212, 0.25);
+        }
+
+        /* Main Workspace Grid */
+        .main-workspace {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 28px;
+            padding: 28px 0 48px;
+            align-items: start;
+        }
+
+        @media (min-width: 1080px) {
+            .main-workspace {
+                grid-template-columns: 1.15fr 0.85fr;
+            }
+        }
+
+        /* Editor Section */
+        .editor-space {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .editor-card {
+            border-radius: 20px;
+            padding: 22px;
+        }
+
+        /* Format Mode Switcher (Digital Mobile vs Físico 85x55mm) */
+        .mode-switch-bar {
+            display: flex;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 4px;
+            gap: 6px;
+            margin-bottom: 20px;
+        }
+
+        .mode-switch-btn {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .mode-switch-btn.active {
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            color: #0b0f19;
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+        }
+
+        .mode-switch-btn:not(.active):hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Accordion Structure */
+        .accordion-item {
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .accordion-item:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .accordion-header {
+            padding: 15px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s ease;
+        }
+
+        .accordion-header:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .accordion-header.active {
+            background: rgba(255, 255, 255, 0.04);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .accordion-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .accordion-icon-box {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .accordion-chevron {
+            font-size: 12px;
+            color: var(--text-dim);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .accordion-header.active .accordion-chevron {
+            transform: rotate(180deg);
+            color: #ffffff;
+        }
+
+        .accordion-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .accordion-body.open {
+            max-height: 1200px;
+        }
+
+        .accordion-inner {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* Inputs & Form Elements */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        @media (min-width: 600px) {
+            .form-group-row {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .field-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .input-modern {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 13.5px;
+            transition: all 0.25s ease;
+            outline: none;
+            width: 100%;
+        }
+
+        .input-modern::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .input-modern:focus {
+            background: rgba(0, 0, 0, 0.5);
+            border-color: #10b981;
+            box-shadow: 0 0 16px rgba(16, 185, 129, 0.25);
+        }
+
+        textarea.input-modern {
+            resize: vertical;
+            min-height: 64px;
+            font-family: inherit;
+        }
+
+        select.input-modern {
+            cursor: pointer;
+        }
+
+        select.input-modern option {
+            background: #121929;
+            color: #ffffff;
+        }
+
+        .input-with-addon {
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-with-addon select {
+            width: 110px;
+            flex-shrink: 0;
+        }
+
+        /* Upload Zones (Photo & Cover Banner) */
+        .upload-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        @media (min-width: 600px) {
+            .upload-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .upload-box {
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .upload-box:hover, .upload-box.dragover {
+            border-color: var(--accent-emerald);
+            background: rgba(16, 185, 129, 0.08);
+        }
+
+        .upload-box-icon {
+            font-size: 24px;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+        }
+
+        .upload-box-text {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .upload-preview-active {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .upload-thumb {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--accent-emerald);
+        }
+
+        .upload-thumb-banner {
+            width: 80px;
+            height: 44px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 2px solid var(--accent-cyan);
+        }
+
+        .btn-remove-media {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #f87171;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-remove-media:hover {
+            background: #ef4444;
+            color: #ffffff;
+        }
+
+        /* Custom Links List */
+        .custom-links-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .custom-link-item {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 12px;
+            display: grid;
+            grid-template-columns: 110px 1fr auto;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn-add-custom-link {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px dashed rgba(16, 185, 129, 0.4);
+            color: #34d399;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .btn-add-custom-link:hover {
+            background: rgba(16, 185, 129, 0.25);
+            border-color: #10b981;
+        }
+
+        .btn-remove-custom-link {
+            background: transparent;
+            border: none;
+            color: #f87171;
+            cursor: pointer;
+            padding: 6px;
+            font-size: 14px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-remove-custom-link:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        /* Themes Grid */
+        .themes-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .theme-card-btn {
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .theme-card-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .theme-card-btn.active {
+            border-color: #10b981;
+            box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);
+        }
+
+        .theme-preview-strip {
+            width: 100%;
+            height: 34px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+        }
+
+        .theme-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-dim);
+        }
+
+        .theme-card-btn.active .theme-name {
+            color: #ffffff;
+        }
+
+        /* Style Toggles (Buttons & Fonts) */
+        .segmented-row {
+            display: flex;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .segmented-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .segmented-btn.active {
+            background: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Fine Color Pickers Row */
+        .color-pickers-strip {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .color-picker-cell {
+            flex: 1;
+            min-width: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .color-picker-cell span {
+            font-size: 10.5px;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .color-swatch-input {
+            width: 100%;
+            height: 34px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            cursor: pointer;
+            padding: 0;
+            background: transparent;
+        }
+
+        /* Toggle Switches */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 0;
+        }
+
+        .switch-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.15);
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #10b981;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        /* Export Bar */
+        .export-card {
+            border-radius: 20px;
+            padding: 22px;
+        }
+
+        .export-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .export-title {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .export-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        @media (min-width: 600px) {
+            .export-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        .export-btn {
+            padding: 14px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #ffffff;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .export-btn i {
+            font-size: 20px;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .export-html { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+        .export-pdf { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+        .export-img { background: linear-gradient(135deg, #10b981, #059669); }
+        .export-vcf { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+        .export-quick-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .quick-action-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .quick-action-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        /* ==========================================================================
+           PREVIEW PANEL & MOCKUP
+           ========================================================================== */
+        .preview-sticky {
+            position: sticky;
+            top: 90px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .preview-panel-card {
+            border-radius: 24px;
+            padding: 24px;
+        }
+
+        .preview-top-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .live-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            color: #34d399;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+            animation: pulseDot 2s infinite;
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .preview-tab-controls {
+            display: flex;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .preview-tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            padding: 5px 12px;
+            border-radius: 7px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .preview-tab-btn.active {
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+        }
+
+        /* Smartphone Frame (Digital Bio View) */
+        .phone-wrapper {
+            display: flex;
+            justify-content: center;
+            perspective: 1000px;
+        }
+
+        .phone-shell {
+            width: 326px;
+            min-height: 640px;
+            max-height: 660px;
+            background: #0f1422;
+            border-radius: 46px;
+            padding: 10px;
+            border: 4px solid #1e293b;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(16, 185, 129, 0.1);
+            position: relative;
+        }
+
+        .phone-notch-bar {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 24px;
+            background: #0f1422;
+            border-radius: 0 0 14px 14px;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .phone-speaker {
+            width: 40px;
+            height: 4px;
+            border-radius: 4px;
+            background: #1e293b;
+        }
+
+        .phone-camera {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #090d16;
+            border: 1px solid #1e293b;
+        }
+
+        .phone-viewport {
+            width: 100%;
+            height: 620px;
+            border-radius: 36px;
+            overflow-y: auto;
+            position: relative;
+            background: #111827;
+            scrollbar-width: none;
+        }
+
+        .phone-viewport::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Digital Card Content Canvas */
+        .digital-card {
+            min-height: 100%;
+            padding: 38px 20px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .card-cover-banner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 110px;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.85;
+            mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+        }
+
+        .card-profile-header {
+            position: relative;
+            z-index: 5;
+            margin-top: 10px;
+            margin-bottom: 12px;
+        }
+
+        .avatar-ring {
+            width: 94px;
+            height: 94px;
+            border-radius: 50%;
+            padding: 3px;
+            background: linear-gradient(135deg, #10b981, #06b6d4, #8b5cf6);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.35);
+        }
+
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #1e293b;
+            display: block;
+        }
+
+        .card-name {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 2px;
+            line-height: 1.25;
+            position: relative;
+            z-index: 5;
+        }
+
+        .card-title {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+            position: relative;
+            z-index: 5;
+        }
+
+        .card-company {
+            font-size: 11.5px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            color: var(--accent-cyan);
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 5;
+        }
+
+        .card-bio {
+            font-size: 12px;
+            line-height: 1.45;
+            color: rgba(255, 255, 255, 0.7);
+            max-width: 250px;
+            margin: 0 auto 16px;
+            position: relative;
+            z-index: 5;
+        }
+
+        /* Card Action Buttons (Save Contact, PIX) */
+        .card-action-bar {
+            width: 100%;
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 5;
+        }
+
+        .card-action-btn {
+            flex: 1;
+            padding: 10px 8px;
+            border-radius: 12px;
+            border: none;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-decoration: none;
+        }
+
+        .btn-save-vcard {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #0b0f19;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-save-vcard:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+        }
+
+        .btn-pay-pix {
+            background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
+            color: #0b0f19;
+            box-shadow: 0 4px 14px rgba(6, 182, 212, 0.3);
+        }
+
+        .btn-pay-pix:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(6, 182, 212, 0.45);
+        }
+
+        /* Links List */
+        .card-links-list {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            margin-bottom: 18px;
+            position: relative;
+            z-index: 5;
+        }
+
+        .card-link-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 16px;
+            text-decoration: none;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 500;
+            width: 100%;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .card-link-btn:hover {
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+        }
+
+        .card-link-btn i {
+            width: 20px;
+            font-size: 16px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        /* QR Code Container on Card */
+        .card-qr-box {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 14px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+            width: 100%;
+            max-width: 220px;
+            position: relative;
+            z-index: 5;
+        }
+
+        .qr-render-area {
+            background: #ffffff;
+            padding: 8px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            width: 130px;
+            height: 130px;
+            overflow: hidden;
+        }
+
+        .qr-render-area svg {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 4px;
+        }
+
+        .qr-caption {
+            font-size: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            color: rgba(255, 255, 255, 0.7);
+            letter-spacing: 0.3px;
+            text-align: center;
+        }
+
+        /* ==========================================================================
+           PHYSICAL CARD PREVIEW (85x55mm Aspect Ratio)
+           ========================================================================== */
+        .physical-card-wrapper {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            width: 100%;
+        }
+
+        .physical-card-flipper {
+            width: 100%;
+            max-width: 440px;
+            aspect-ratio: 85 / 55;
+            perspective: 1200px;
+        }
+
+        .physical-card-face {
+            width: 100%;
+            height: 100%;
+            border-radius: 16px;
+            padding: 22px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6), 0 0 30px rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.5s ease;
+        }
+
+        .physical-card-front {
+            display: flex;
+        }
+
+        .physical-card-back {
+            display: none;
+        }
+
+        .physical-front-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .physical-front-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #10b981;
+            flex-shrink: 0;
+            background: #1e293b;
+        }
+
+        .physical-front-name {
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .physical-front-title {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .physical-front-company {
+            font-size: 11px;
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+
+        .physical-front-contacts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 12px;
+            font-size: 10.5px;
+            font-family: 'JetBrains Mono', monospace;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: auto;
+        }
+
+        .physical-front-contacts div {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .physical-back-layout {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 100%;
+            gap: 20px;
+        }
+
+        .physical-back-info {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            text-align: left;
+        }
+
+        .physical-back-qr {
+            background: #ffffff;
+            padding: 6px;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            flex-shrink: 0;
+            width: 90px;
+            height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .physical-back-qr svg {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+
+        /* Toast Notifications */
+        .toast-box {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            background: #111827;
+            border: 1px solid var(--accent-emerald);
+            color: #ffffff;
+            padding: 14px 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(16, 185, 129, 0.25);
+            transform: translateY(80px);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 999;
+        }
+
+        .toast-box.show {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Footer */
+        .footer-clean {
+            text-align: center;
+            padding: 30px 0;
+            margin-top: auto;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .footer-clean a {
+            color: var(--accent-emerald);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .footer-clean a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient Animated Shapes -->
+    <div class="floating-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <!-- Header Navigation -->
+    <header class="header">
+        <div class="container header-content">
+            <a href="#" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-id-badge"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>CardCraft Pro</h1>
+                    <p>● 4U.IA.BR // CARTÕES DIGITAIS & FÍSICOS</p>
+                </div>
+            </a>
+
+            <div class="header-actions">
+                <span class="sovereign-tag">
+                    <i class="fas fa-shield-alt"></i> 100% Client-Side • Auto-Save
+                </span>
+                <button class="btn-preset btn-preset-accent" onclick="openPresetModal()">
+                    <i class="fas fa-magic"></i> Templates Prontos
+                </button>
+                <button class="btn-preset" onclick="resetFormWithConfirm()" title="Limpar formulário">
+                    <i class="fas fa-rotate-left"></i> Limpar
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="container main-workspace">
+        
+        <!-- Left Column: Form Editor & Settings -->
+        <div class="editor-space">
+            
+            <div class="editor-card glass">
+                
+                <!-- Format Mode Switcher -->
+                <div class="mode-switch-bar">
+                    <button type="button" class="mode-switch-btn active" id="btnModeDigital" onclick="switchCardMode('digital')">
+                        <i class="fas fa-mobile-screen"></i> Cartão Digital (Bio / Mobile)
+                    </button>
+                    <button type="button" class="mode-switch-btn" id="btnModePhysical" onclick="switchCardMode('physical')">
+                        <i class="fas fa-credit-card"></i> Cartão Físico (85x55mm)
+                    </button>
+                </div>
+
+                <!-- Accordion 1: Informações Pessoais -->
+                <div class="accordion-item">
+                    <div class="accordion-header active" onclick="toggleAccordion(this)">
+                        <div class="accordion-title">
+                            <div class="accordion-icon-box" style="background: rgba(139, 92, 246, 0.15); color: #a78bfa;">
+                                <i class="fas fa-user-circle"></i>
+                            </div>
+                            <span>Informações Pessoais & Perfil</span>
+                        </div>
+                        <i class="fas fa-chevron-down accordion-chevron"></i>
+                    </div>
+                    <div class="accordion-body open">
+                        <div class="accordion-inner">
+                            <div class="form-group-row">
+                                <div class="form-group">
+                                    <label class="field-label">Nome Completo</label>
+                                    <input type="text" id="inputNome" class="input-modern" placeholder="Ex: Eng. Lucas Mendes">
+                                </div>
+                                <div class="form-group">
+                                    <label class="field-label">Cargo / Especialidade</label>
+                                    <input type="text" id="inputCargo" class="input-modern" placeholder="Ex: Engenheiro de Software & Sistemas">
+                                </div>
+                            </div>
+                            <div class="form-group-row">
+                                <div class="form-group">
+                                    <label class="field-label">Empresa / Organização (opcional)</label>
+                                    <input type="text" id="inputEmpresa" class="input-modern" placeholder="Ex: 4U.IA.BR Labs">
+                                </div>
+                                <div class="form-group">
+                                    <label class="field-label">Slogan / Mini-Bio</label>
+                                    <input type="text" id="inputBio" class="input-modern" placeholder="Ex: Arquiteturas resilientes e WebAssembly.">
+                                </div>
+                            </div>
+
+                            <!-- Upload Zones: Foto de Perfil & Capa de Fundo -->
+                            <div class="upload-grid">
+                                <div class="form-group">
+                                    <label class="field-label">Foto de Perfil / Logo</label>
+                                    <div class="upload-box" id="dropAvatar" onclick="document.getElementById('fileAvatar').click()">
+                                        <input type="file" id="fileAvatar" accept="image/*" style="display: none;" onchange="handleImageUpload(event, 'avatar')">
+                                        <div id="avatarPlaceholder">
+                                            <i class="fas fa-camera upload-box-icon"></i>
+                                            <div class="upload-box-text">Clique ou arraste uma foto</div>
+                                        </div>
+                                        <div id="avatarActive" style="display: none;" class="upload-preview-active">
+                                            <img id="thumbAvatar" class="upload-thumb" src="" alt="">
+                                            <button type="button" class="btn-remove-media" onclick="removeImage(event, 'avatar')">
+                                                <i class="fas fa-trash"></i> Remover
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="field-label">Banner de Capa (Header Cover)</label>
+                                    <div class="upload-box" id="dropBanner" onclick="document.getElementById('fileBanner').click()">
+                                        <input type="file" id="fileBanner" accept="image/*" style="display: none;" onchange="handleImageUpload(event, 'banner')">
+                                        <div id="bannerPlaceholder">
+                                            <i class="fas fa-image upload-box-icon" style="color: var(--accent-emerald);"></i>
+                                            <div class="upload-box-text">Banner de fundo superior</div>
+                                        </div>
+                                        <div id="bannerActive" style="display: none;" class="upload-preview-active">
+                                            <img id="thumbBanner" class="upload-thumb-banner" src="" alt="">
+                                            <button type="button" class="btn-remove-media" onclick="removeImage(event, 'banner')">
+                                                <i class="fas fa-trash"></i> Remover
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accordion 2: Contatos Principais -->
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="accordion-title">
+                            <div class="accordion-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
+                                <i class="fas fa-address-book"></i>
+                            </div>
+                            <span>Contatos & Comunicação</span>
+                        </div>
+                        <i class="fas fa-chevron-down accordion-chevron"></i>
+                    </div>
+                    <div class="accordion-body">
+                        <div class="accordion-inner">
+                            <div class="form-group">
+                                <label class="field-label"><i class="fab fa-whatsapp" style="color: #25d366;"></i> WhatsApp Direto</label>
+                                <div class="input-with-addon">
+                                    <select id="whatsappDdi" class="input-modern">
+                                        <option value="+55">🇧🇷 +55</option>
+                                        <option value="+1">🇺🇸 +1</option>
+                                        <option value="+351">🇵🇹 +351</option>
+                                        <option value="+44">🇬🇧 +44</option>
+                                        <option value="+34">🇪🇸 +34</option>
+                                        <option value="+49">🇩🇪 +49</option>
+                                    </select>
+                                    <input type="tel" id="inputWhatsapp" class="input-modern" placeholder="(11) 99999-9999" oninput="formatPhoneInput(this)">
+                                </div>
+                            </div>
+                            <div class="form-group-row">
+                                <div class="form-group">
+                                    <label class="field-label"><i class="fas fa-envelope" style="color: #ea4335;"></i> E-mail</label>
+                                    <input type="email" id="inputEmail" class="input-modern" placeholder="contato@seusite.com">
+                                </div>
+                                <div class="form-group">
+                                    <label class="field-label"><i class="fas fa-phone" style="color: #60a5fa;"></i> Telefone Fixo / Comercial</label>
+                                    <input type="tel" id="inputTelefone" class="input-modern" placeholder="(11) 3333-3333" oninput="formatPhoneInput(this)">
+                                </div>
+                            </div>
+                            <div class="form-group-row">
+                                <div class="form-group">
+                                    <label class="field-label"><i class="fas fa-globe" style="color: #38bdf8;"></i> Website / Portfólio</label>
+                                    <input type="url" id="inputWebsite" class="input-modern" placeholder="https://4u.ia.br">
+                                </div>
+                                <div class="form-group">
+                                    <label class="field-label"><i class="fas fa-location-dot" style="color: #f87171;"></i> Endereço / Cidade</label>
+                                    <input type="text" id="inputEndereco" class="input-modern" placeholder="São Paulo, SP - Brasil">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accordion 3: Chave PIX & Pagamento -->
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="accordion-title">
+                            <div class="accordion-icon-box" style="background: rgba(6, 182, 212, 0.15); color: #22d3ee;">
+                                <i class="fas fa-qrcode"></i>
+                            </div>
+                            <span>Chave PIX (Pagamentos Rápidos)</span>
+                        </div>
+                        <i class="fas fa-chevron-down accordion-chevron"></i>
+                    </div>
+                    <div class="accordion-body">
+                        <div class="accordion-inner">
+                            <div class="toggle-row">
+                                <span class="switch-label">
+                                    <i class="fas fa-wallet" style="color: var(--accent-cyan);"></i> Exibir botão de PIX no cartão
+                                </span>
+                                <label class="switch">
+                                    <input type="checkbox" id="togglePix" checked onchange="updateLivePreview()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="form-group-row">
+                                <div class="form-group">
+                                    <label class="field-label">Tipo de Chave</label>
+                                    <select id="pixTipo" class="input-modern">
+                                        <option value="aleatoria">Chave Aleatória (EVP)</option>
+                                        <option value="email">E-mail</option>
+                                        <option value="celular">Celular</option>
+                                        <option value="cpf_cnpj">CPF / CNPJ</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="field-label">Chave PIX</label>
+                                    <input type="text" id="inputPixChave" class="input-modern" placeholder="Cole sua chave PIX">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="field-label">Nome do Titular da Conta (opcional)</label>
+                                <input type="text" id="inputPixNome" class="input-modern" placeholder="Nome que aparece ao transferir">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accordion 4: Redes Sociais -->
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="accordion-title">
+                            <div class="accordion-icon-box" style="background: rgba(236, 72, 153, 0.15); color: #f472b6;">
+                                <i class="fas fa-share-nodes"></i>
+                            </div>
+                            <span>Redes Sociais & Portfólios</span>
+                        </div>
+                        <i class="fas fa-chevron-down accordion-chevron"></i>
+                    </div>
+                    <div class="accordion-body">
+                        <div class="accordion-inner">
+                            <div class="form-group-row">
+                                <div class="form-group">
+                                    <label class="field-label"><i class="fab fa-instagram" style="color: #E4405F;"></i> Instagram</label>
+                                    <input type="text" id="inputInstagram" class="input-modern" placeholder="@seu.perfil">
+                                </div>
+                                <div class="form-group">
+                                    <label class="field-label"><i class="fab fa-linkedin" style="color: #0077b5;"></i> LinkedIn</label>
+                                    <input type="text" id="inputLinkedin" class="input-modern" placeholder="linkedin.com/in/seu-perfil">
+                                </div>
+                            </div>
+                            <div class="form-group-row">
+                                <div class="form-group">
+                                    <label class="field-label"><i class="fab fa-facebook" style="color: #1877f2;"></i> Facebook</label>
+                                    <input type="text" id="inputFacebook" class="input-modern" placeholder="facebook.com/seu.perfil">
+                                </div>
+                                <div class="form-group">
+                                    <label class="field-label"><i class="fab fa-github"></i> GitHub</label>
+                                    <input type="text" id="inputGithub" class="input-modern" placeholder="github.com/seuusuario">
+                                </div>
+                            </div>
+                            <div class="form-group-row">
+                                <div class="form-group">
+                                    <label class="field-label"><i class="fab fa-youtube" style="color: #ff0000;"></i> YouTube</label>
+                                    <input type="text" id="inputYoutube" class="input-modern" placeholder="youtube.com/@seucanal">
+                                </div>
+                                <div class="form-group">
+                                    <label class="field-label"><i class="fab fa-telegram" style="color: #229ED9;"></i> Telegram</label>
+                                    <input type="text" id="inputTelegram" class="input-modern" placeholder="@seuusuario">
+                                </div>
+                            </div>
+                            <div class="form-group-row">
+                                <div class="form-group">
+                                    <label class="field-label"><i class="fab fa-telegram" style="color: #229ED9;"></i> Telegram</label>
+                                    <input type="text" id="inputTelegram" class="input-modern" placeholder="@seuusuario">
+                                </div>
+                                <div class="form-group">
+                                    <label class="field-label"><i class="fab fa-x-twitter"></i> X / Twitter</label>
+                                    <input type="text" id="inputTwitter" class="input-modern" placeholder="@seuusuario">
+                                </div>
+                            </div>
+                            <div class="form-group-row">
+                                <div class="form-group">
+                                    <label class="field-label"><i class="fab fa-tiktok"></i> TikTok</label>
+                                    <input type="text" id="inputTiktok" class="input-modern" placeholder="@seuusuario">
+                                </div>
+                                <div class="form-group">
+                                    <label class="field-label"><i class="fab fa-behance" style="color: #1769ff;"></i> Behance</label>
+                                    <input type="text" id="inputBehance" class="input-modern" placeholder="behance.net/seuusuario">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accordion 5: Links Personalizados Livres -->
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="accordion-title">
+                            <div class="accordion-icon-box" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">
+                                <i class="fas fa-link"></i>
+                            </div>
+                            <span>Links Personalizados Livres (Custom Links)</span>
+                        </div>
+                        <i class="fas fa-chevron-down accordion-chevron"></i>
+                    </div>
+                    <div class="accordion-body">
+                        <div class="accordion-inner">
+                            <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 6px;">
+                                Adicione botões extras com links de agendamento (Calendly), cardápios, PDFs, catálogos ou rotas.
+                            </p>
+                            <div id="customLinksList" class="custom-links-container">
+                                <!-- Injected dynamically by JS -->
+                            </div>
+                            <button type="button" class="btn-add-custom-link" onclick="addCustomLinkItem()">
+                                <i class="fas fa-plus-circle"></i> Adicionar Novo Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accordion 6: QR Code & vCard Integrados -->
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="accordion-title">
+                            <div class="accordion-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                                <i class="fas fa-qrcode"></i>
+                            </div>
+                            <span>QR Code & vCard (Agenda do Celular)</span>
+                        </div>
+                        <i class="fas fa-chevron-down accordion-chevron"></i>
+                    </div>
+                    <div class="accordion-body">
+                        <div class="accordion-inner">
+                            <div class="toggle-row">
+                                <span class="switch-label">
+                                    <i class="fas fa-eye" style="color: #34d399;"></i> Exibir QR Code no corpo do cartão
+                                </span>
+                                <label class="switch">
+                                    <input type="checkbox" id="toggleQrCode" checked onchange="updateLivePreview()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label class="field-label">Ação ao escanear o QR Code</label>
+                                <select id="qrCodeTarget" class="input-modern" onchange="updateLivePreview()">
+                                    <option value="vcard">Salvar na Agenda (vCard - Nome, Telefone, Email)</option>
+                                    <option value="website">Abrir Website / Link Principal</option>
+                                    <option value="whatsapp">Abrir Conversa Direta no WhatsApp</option>
+                                    <option value="pix">Pagar via PIX (Chave Copia e Cola)</option>
+                                </select>
+                            </div>
+                            <button type="button" class="quick-action-btn" onclick="downloadQrCodePng()" style="margin-top: 4px;">
+                                <i class="fas fa-download"></i> Baixar Somente o QR Code (PNG Alta Resolução)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accordion 7: Aparência, Temas & Tipografia -->
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="accordion-title">
+                            <div class="accordion-icon-box" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;">
+                                <i class="fas fa-palette"></i>
+                            </div>
+                            <span>Aparência, Temas & Tipografia</span>
+                        </div>
+                        <i class="fas fa-chevron-down accordion-chevron"></i>
+                    </div>
+                    <div class="accordion-body">
+                        <div class="accordion-inner">
+                            <div class="form-group">
+                                <label class="field-label">Temas Profissionais</label>
+                                <div class="themes-grid">
+                                    <!-- 4U Cyber Tech -->
+                                    <button type="button" class="theme-card-btn active" data-theme="tech" onclick="selectTheme('tech')">
+                                        <div class="theme-preview-strip" style="background: linear-gradient(135deg, #0b0f19 0%, #10b981 100%);"></div>
+                                        <div class="theme-name">4U Tech</div>
+                                    </button>
+                                    <!-- Dark Violet -->
+                                    <button type="button" class="theme-card-btn" data-theme="dark" onclick="selectTheme('dark')">
+                                        <div class="theme-preview-strip" style="background: linear-gradient(135deg, #1e1e2f 0%, #8b5cf6 100%);"></div>
+                                        <div class="theme-name">Dark Violet</div>
+                                    </button>
+                                    <!-- Clean Light -->
+                                    <button type="button" class="theme-card-btn" data-theme="clean" onclick="selectTheme('clean')">
+                                        <div class="theme-preview-strip" style="background: linear-gradient(135deg, #f8fafc 0%, #0284c7 100%); border: 1px solid #cbd5e1;"></div>
+                                        <div class="theme-name">Clean Light</div>
+                                    </button>
+                                    <!-- Executivo Gold -->
+                                    <button type="button" class="theme-card-btn" data-theme="gold" onclick="selectTheme('gold')">
+                                        <div class="theme-preview-strip" style="background: linear-gradient(135deg, #18181b 0%, #eab308 100%);"></div>
+                                        <div class="theme-name">Executivo</div>
+                                    </button>
+                                    <!-- Ocean Blue -->
+                                    <button type="button" class="theme-card-btn" data-theme="ocean" onclick="selectTheme('ocean')">
+                                        <div class="theme-preview-strip" style="background: linear-gradient(135deg, #0c4a6e 0%, #06b6d4 100%);"></div>
+                                        <div class="theme-name">Ocean Blue</div>
+                                    </button>
+                                    <!-- Sunset Rose -->
+                                    <button type="button" class="theme-card-btn" data-theme="sunset" onclick="selectTheme('sunset')">
+                                        <div class="theme-preview-strip" style="background: linear-gradient(135deg, #7c2d12 0%, #f43f5e 100%);"></div>
+                                        <div class="theme-name">Sunset</div>
+                                    </button>
+                                    <!-- Emerald Nature -->
+                                    <button type="button" class="theme-card-btn" data-theme="emerald" onclick="selectTheme('emerald')">
+                                        <div class="theme-preview-strip" style="background: linear-gradient(135deg, #064e3b 0%, #34d399 100%);"></div>
+                                        <div class="theme-name">Emerald</div>
+                                    </button>
+                                    <!-- Neon Purple -->
+                                    <button type="button" class="theme-card-btn" data-theme="purple" onclick="selectTheme('purple')">
+                                        <div class="theme-preview-strip" style="background: linear-gradient(135deg, #2e1065 0%, #c084fc 100%);"></div>
+                                        <div class="theme-name">Neon Purple</div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Font Selector -->
+                            <div class="form-group">
+                                <label class="field-label">Tipografia do Cartão</label>
+                                <div class="segmented-row">
+                                    <button type="button" class="segmented-btn active" data-font="Inter" onclick="selectFont('Inter')">Inter</button>
+                                    <button type="button" class="segmented-btn" data-font="Poppins" onclick="selectFont('Poppins')">Poppins</button>
+                                    <button type="button" class="segmented-btn" data-font="Playfair Display" onclick="selectFont('Playfair Display')">Playfair (Clássica)</button>
+                                    <button type="button" class="segmented-btn" data-font="JetBrains Mono" onclick="selectFont('JetBrains Mono')">JetBrains (Tech)</button>
+                                </div>
+                            </div>
+
+                            <!-- Button Shape Selector -->
+                            <div class="form-group">
+                                <label class="field-label">Formato dos Botões</label>
+                                <div class="segmented-row">
+                                    <button type="button" class="segmented-btn active" data-shape="rounded" onclick="selectButtonShape('rounded')">Arredondado</button>
+                                    <button type="button" class="segmented-btn" data-shape="pill" onclick="selectButtonShape('pill')">Pílula</button>
+                                    <button type="button" class="segmented-btn" data-shape="square" onclick="selectButtonShape('square')">Quadrado</button>
+                                    <button type="button" class="segmented-btn" data-shape="glass" onclick="selectButtonShape('glass')">Glass / Vidro</button>
+                                </div>
+                            </div>
+
+                            <!-- Custom Colors Fine Tune -->
+                            <div class="form-group">
+                                <label class="field-label">Ajuste Fino de Cores</label>
+                                <div class="color-pickers-strip">
+                                    <div class="color-picker-cell">
+                                        <span>Fundo 1</span>
+                                        <input type="color" id="colorBg1" class="color-swatch-input" value="#0b0f19" onchange="applyCustomColorPickers()">
+                                    </div>
+                                    <div class="color-picker-cell">
+                                        <span>Fundo 2</span>
+                                        <input type="color" id="colorBg2" class="color-swatch-input" value="#162035" onchange="applyCustomColorPickers()">
+                                    </div>
+                                    <div class="color-picker-cell">
+                                        <span>Acento</span>
+                                        <input type="color" id="colorAccent" class="color-swatch-input" value="#10b981" onchange="applyCustomColorPickers()">
+                                    </div>
+                                    <div class="color-picker-cell">
+                                        <span>Texto</span>
+                                        <input type="color" id="colorText" class="color-swatch-input" value="#ffffff" onchange="applyCustomColorPickers()">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Exporting Section Card -->
+            <div class="export-card glass">
+                <div class="export-header">
+                    <h3 class="export-title">
+                        <i class="fas fa-cloud-arrow-down" style="color: var(--accent-emerald);"></i>
+                        Exportação & Compartilhamento
+                    </h3>
+                    <span style="font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">
+                        Ultra-HD • 300 DPI
+                    </span>
+                </div>
+                <div class="export-grid">
+                    <button type="button" class="export-btn export-html" onclick="exportHTMLFile()">
+                        <i class="fas fa-file-code"></i>
+                        <span>Webpage HTML</span>
+                    </button>
+                    <button type="button" class="export-btn export-pdf" onclick="exportPDFDocument()">
+                        <i class="fas fa-file-pdf"></i>
+                        <span>PDF com Links</span>
+                    </button>
+                    <button type="button" class="export-btn export-img" onclick="exportImageCapture('png')">
+                        <i class="fas fa-file-image"></i>
+                        <span>Imagem PNG</span>
+                    </button>
+                    <button type="button" class="export-btn export-vcf" onclick="downloadVCardFile()">
+                        <i class="fas fa-address-card"></i>
+                        <span>vCard (.vcf)</span>
+                    </button>
+                </div>
+                <div class="export-quick-actions">
+                    <button type="button" class="quick-action-btn" onclick="triggerWebShare()">
+                        <i class="fas fa-share-nodes"></i> Compartilhar (Web Share)
+                    </button>
+                    <button type="button" class="quick-action-btn" onclick="copyCardImageToClipboard()">
+                        <i class="fas fa-copy"></i> Copiar Imagem (Área de Transferência)
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Live Interactive Preview -->
+        <div class="preview-space">
+            <div class="preview-sticky">
+                <div class="preview-panel-card glass">
+                    
+                    <!-- Preview Toolbar -->
+                    <div class="preview-top-toolbar">
+                        <div class="live-status">
+                            <span class="live-dot"></span>
+                            <span>RENDERIZAÇÃO EM TEMPO REAL</span>
+                        </div>
+                        <div class="preview-tab-controls" id="physicalCardControls" style="display: none;">
+                            <button type="button" class="preview-tab-btn active" id="btnFrontTab" onclick="togglePhysicalFace('front')">Frente</button>
+                            <button type="button" class="preview-tab-btn" id="btnBackTab" onclick="togglePhysicalFace('back')">Verso (QR Code)</button>
+                        </div>
+                    </div>
+
+                    <!-- Smartphone Frame: Mode Digital -->
+                    <div class="phone-wrapper" id="containerDigitalView">
+                        <div class="phone-shell">
+                            <div class="phone-notch-bar">
+                                <div class="phone-speaker"></div>
+                                <div class="phone-camera"></div>
+                            </div>
+                            <div class="phone-viewport" id="viewportScroll">
+                                <div id="cardPreviewDigital" class="digital-card">
+                                    <div id="previewCoverBanner" class="card-cover-banner" style="display: none;"></div>
+                                    
+                                    <div class="card-profile-header">
+                                        <div class="avatar-ring" id="previewAvatarRing">
+                                            <img id="previewAvatar" class="avatar-img" src="" alt="">
+                                        </div>
+                                    </div>
+
+                                    <h2 id="previewNome" class="card-name">Seu Nome</h2>
+                                    <p id="previewCargo" class="card-title">Sua Profissão ou Cargo</p>
+                                    <p id="previewEmpresa" class="card-company">4U.IA.BR // LABS</p>
+                                    <p id="previewBio" class="card-bio">Breve descrição profissional de impacto.</p>
+
+                                    <!-- Quick Actions Bar (vCard & PIX) -->
+                                    <div class="card-action-bar">
+                                        <button type="button" class="card-action-btn btn-save-vcard" onclick="downloadVCardFile()">
+                                            <i class="fas fa-user-plus"></i> Salvar Contato
+                                        </button>
+                                        <button type="button" id="previewBtnPix" class="card-action-btn btn-pay-pix" onclick="copyPixDirectly()">
+                                            <i class="fas fa-qrcode"></i> Pagar via PIX
+                                        </button>
+                                    </div>
+
+                                    <!-- Generated Social & Contact Links -->
+                                    <div id="previewLinksContainer" class="card-links-list">
+                                        <!-- Injected by JS -->
+                                    </div>
+
+                                    <!-- Embedded QR Code -->
+                                    <div id="previewQrContainer" class="card-qr-box">
+                                        <div id="previewQrHolder" class="qr-render-area"></div>
+                                        <span class="qr-caption" id="previewQrLabel">Aponte a câmera para salvar o contato</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Physical Business Card View (85x55mm) -->
+                    <div class="physical-card-wrapper" id="containerPhysicalView">
+                        <div class="physical-card-flipper">
+                            <!-- Front Side -->
+                            <div class="physical-card-face physical-card-front" id="cardPhysicalFront">
+                                <div class="physical-front-header">
+                                    <img id="physAvatarFront" class="physical-front-avatar" src="" alt="">
+                                    <div>
+                                        <div id="physNomeFront" class="physical-front-name">Seu Nome</div>
+                                        <div id="physCargoFront" class="physical-front-title">Engenheiro de Software</div>
+                                        <div id="physEmpresaFront" class="physical-front-company">4U.IA.BR LABS</div>
+                                    </div>
+                                </div>
+                                <div class="physical-front-contacts" id="physContactsFront">
+                                    <!-- Injected by JS -->
+                                </div>
+                            </div>
+
+                            <!-- Back Side -->
+                            <div class="physical-card-face physical-card-back" id="cardPhysicalBack">
+                                <div class="physical-back-layout">
+                                    <div class="physical-back-info">
+                                        <div style="font-size: 16px; font-weight: 700;" id="physBackNome">Seu Nome</div>
+                                        <div style="font-size: 11px; color: var(--accent-emerald);" id="physBackSlogan">Arquiteturas soberanas e inovação</div>
+                                        <div style="font-size: 10px; color: var(--text-dim); margin-top: 8px;">
+                                            Aponte a câmera do celular para adicionar instantaneamente à sua agenda.
+                                        </div>
+                                    </div>
+                                    <div class="physical-back-qr" id="physBackQr"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer-clean">
+        <p>&copy; 2026 4U.IA.BR • CardCraft Pro • Zero Instalação • Privacidade Absoluta</p>
+    </footer>
+
+    <!-- Toast Notification Box -->
+    <div id="toastBox" class="toast-box">
+        <i class="fas fa-check-circle" style="font-size: 20px; color: #10b981;"></i>
+        <span id="toastMsg">Operação realizada com sucesso!</span>
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+        // High quality default vector avatar when no photo has been chosen
+        const DEFAULT_AVATAR_SVG = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23162035'/><circle cx='50' cy='38' r='18' fill='%2310b981'/><path d='M 20 84 C 20 64 34 56 50 56 C 66 56 80 64 80 84 Z' fill='%2310b981'/></svg>";
+
+        // Data State
+        let cardMode = 'digital'; // 'digital' or 'physical'
+        let currentThemeKey = 'tech';
+        let currentFont = 'Inter';
+        let currentShape = 'rounded';
+        let avatarDataUrl = '';
+        let bannerDataUrl = '';
+        let customLinksData = [];
+
+        // Theme Palette Presets
+        const themePresets = {
+            tech: { bg1: '#0b0f19', bg2: '#162035', accent: '#10b981', text: '#ffffff', name: '4U Tech' },
+            dark: { bg1: '#1e1e2f', bg2: '#2d2d44', accent: '#8b5cf6', text: '#ffffff', name: 'Dark Violet' },
+            clean: { bg1: '#ffffff', bg2: '#f1f5f9', accent: '#0284c7', text: '#0f172a', name: 'Clean Light' },
+            gold: { bg1: '#18181b', bg2: '#27272a', accent: '#eab308', text: '#ffffff', name: 'Executivo Gold' },
+            ocean: { bg1: '#0c4a6e', bg2: '#0e7490', accent: '#06b6d4', text: '#ffffff', name: 'Ocean Blue' },
+            sunset: { bg1: '#7c2d12', bg2: '#9f1239', accent: '#fb923c', text: '#ffffff', name: 'Sunset' },
+            emerald: { bg1: '#064e3b', bg2: '#047857', accent: '#34d399', text: '#ffffff', name: 'Emerald' },
+            purple: { bg1: '#2e1065', bg2: '#4c1d95', accent: '#c084fc', text: '#ffffff', name: 'Neon Purple' }
+        };
+
+        // Standard Social Links Catalog
+        const socialCatalog = [
+            { id: 'whatsapp', icon: 'fab fa-whatsapp', label: 'WhatsApp', color: '#25d366', prefix: 'https://wa.me/' },
+            { id: 'email', icon: 'fas fa-envelope', label: 'E-mail', color: '#ea4335', prefix: 'mailto:' },
+            { id: 'telefone', icon: 'fas fa-phone', label: 'Telefone', color: '#60a5fa', prefix: 'tel:' },
+            { id: 'website', icon: 'fas fa-briefcase', label: 'Portfólio / Loja', color: '#10b981', prefix: '' },
+            { id: 'endereco', icon: 'fas fa-location-dot', label: 'Localização', color: '#f87171', prefix: 'https://maps.google.com/?q=' },
+            { id: 'instagram', icon: 'fab fa-instagram', label: 'Instagram', color: '#E4405F', prefix: 'https://instagram.com/' },
+            { id: 'linkedin', icon: 'fab fa-linkedin', label: 'LinkedIn', color: '#0077b5', prefix: 'https://linkedin.com/in/' },
+            { id: 'facebook', icon: 'fab fa-facebook', label: 'Facebook', color: '#1877f2', prefix: 'https://facebook.com/' },
+            { id: 'github', icon: 'fab fa-github', label: 'GitHub', color: '#333333', prefix: 'https://github.com/' },
+            { id: 'youtube', icon: 'fab fa-youtube', label: 'YouTube', color: '#ff0000', prefix: 'https://youtube.com/@' },
+            { id: 'telegram', icon: 'fab fa-telegram', label: 'Telegram', color: '#229ED9', prefix: 'https://t.me/' },
+            { id: 'twitter', icon: 'fab fa-x-twitter', label: 'X (Twitter)', color: '#1da1f2', prefix: 'https://twitter.com/' },
+            { id: 'tiktok', icon: 'fab fa-tiktok', label: 'TikTok', color: '#000000', prefix: 'https://tiktok.com/@' },
+            { id: 'behance', icon: 'fab fa-behance', label: 'Behance', color: '#1769ff', prefix: 'https://behance.net/' }
+        ];
+
+        // Ready-to-use Professional Presets
+        const professionalPresets = {
+            engenheiro: {
+                nome: 'Fabiano Braga',
+                cargo: 'Engenheiro de Software & Fundador',
+                empresa: '4U.IA.BR // Engenharia e Pesquisa',
+                bio: 'Desenvolvimento de soluções Web & SaaS de alta performance, WASM, criptografia client-side e inteligência soberana.',
+                whatsappDdi: '+55',
+                whatsapp: '',
+                email: '',
+                telefone: '',
+                website: 'https://4u.ia.br/loja',
+                endereco: '',
+                pixTipo: 'aleatoria',
+                pixChave: '',
+                pixNome: 'Fabiano Braga',
+                togglePix: false,
+                instagram: 'https://www.instagram.com/fbr4g4/',
+                linkedin: 'https://www.linkedin.com/in/fbr4g4/?isSelfProfile=true',
+                facebook: 'https://www.facebook.com/fbr4g4/',
+                github: 'https://github.com/4u-Labs',
+                youtube: '',
+                telegram: '',
+                twitter: '',
+                tiktok: '',
+                behance: '',
+                theme: 'tech',
+                font: 'Inter',
+                shape: 'rounded',
+                avatarDataUrl: (typeof DEFAULT_FABIANO_AVATAR !== 'undefined' ? DEFAULT_FABIANO_AVATAR : 'assets/perfil.webp'),
+                bannerDataUrl: (typeof DEFAULT_FABIANO_BANNER !== 'undefined' ? DEFAULT_FABIANO_BANNER : 'assets/banner.webp'),
+                customLinks: []
+            },
+            advogada: {
+                nome: 'Dra. Camila Vasconcelos',
+                cargo: 'Advogada Tributária & Societária',
+                empresa: 'Vasconcelos & Associados Advocacia',
+                bio: 'Consultoria estratégica para empresas, compliance fiscal e estruturação societária.',
+                whatsappDdi: '+55',
+                whatsapp: '(11) 99123-4567',
+                email: 'contato@vasconcelosadv.com.br',
+                telefone: '(11) 3456-7890',
+                website: 'https://vasconcelosadv.com.br',
+                endereco: 'Av. Paulista, 1000 - São Paulo, SP',
+                pixTipo: 'cpf_cnpj',
+                pixChave: '12.345.678/0001-90',
+                pixNome: 'Vasconcelos e Associados',
+                togglePix: true,
+                instagram: 'camilavasconcelos.adv',
+                linkedin: 'camilavasconcelos',
+                github: '',
+                youtube: '',
+                telegram: '',
+                twitter: '',
+                tiktok: '',
+                behance: '',
+                theme: 'gold',
+                font: 'Playfair Display',
+                shape: 'glass',
+                customLinks: [
+                    { title: 'Agendar Consulta Jurídica', url: 'https://calendly.com', icon: 'fas fa-scale-balanced', color: '#eab308' },
+                    { title: 'Localização do Escritório', url: 'https://maps.google.com', icon: 'fas fa-map-location-dot', color: '#f59e0b' }
+                ]
+            },
+            medico: {
+                nome: 'Dr. Roberto Albuquerque',
+                cargo: 'Cardiologista & Pesquisador',
+                empresa: 'Clínica CardioVida • CRM/SP 123456',
+                bio: 'Prevenção cardiovascular, medicina personalizada e reabilitação cardíaca avançada.',
+                whatsappDdi: '+55',
+                whatsapp: '(11) 98888-2222',
+                email: 'dr.roberto@cardiovida.med.br',
+                telefone: '(11) 4004-1234',
+                website: 'https://cardiovida.med.br',
+                endereco: 'Jardins, São Paulo - SP',
+                pixTipo: 'email',
+                pixChave: 'financeiro@cardiovida.med.br',
+                pixNome: 'Dr Roberto Albuquerque',
+                togglePix: false,
+                instagram: 'dr.robertoalbuquerque',
+                linkedin: 'dr-roberto-albuquerque',
+                github: '',
+                youtube: 'drrobertosaude',
+                telegram: '',
+                twitter: '',
+                tiktok: '',
+                behance: '',
+                theme: 'clean',
+                font: 'Inter',
+                shape: 'pill',
+                customLinks: [
+                    { title: 'Marcar Consulta Online', url: 'https://doctoralia.com.br', icon: 'fas fa-stethoscope', color: '#0284c7' },
+                    { title: 'Orientações para Exames', url: 'https://cardiovida.med.br/exames', icon: 'fas fa-file-medical', color: '#0ea5e9' }
+                ]
+            },
+            designer: {
+                nome: 'Beatriz Lima',
+                cargo: 'Product Designer & 3D Artist',
+                empresa: 'Studio Beatriz Lima',
+                bio: 'Criando identidades visuais memoráveis, interfaces e experiências digitais imersivas.',
+                whatsappDdi: '+55',
+                whatsapp: '(21) 98111-9999',
+                email: 'ola@beatrizlima.design',
+                telefone: '',
+                website: 'https://beatrizlima.design',
+                endereco: 'Rio de Janeiro, RJ',
+                pixTipo: 'chave_aleatoria',
+                pixChave: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+                pixNome: 'Beatriz Lima Design',
+                togglePix: true,
+                instagram: 'beatriz.dsgn',
+                linkedin: 'beatrizlimadesign',
+                github: 'beatrizlima',
+                youtube: '',
+                telegram: '',
+                twitter: 'beatriz_ui',
+                tiktok: '',
+                behance: 'beatrizlima',
+                theme: 'sunset',
+                font: 'Poppins',
+                shape: 'rounded',
+                customLinks: [
+                    { title: 'Ver Portfólio Completo', url: 'https://behance.net', icon: 'fas fa-palette', color: '#f43f5e' },
+                    { title: 'Solicitar Orçamento', url: 'https://wa.me/5521981119999', icon: 'fas fa-sparkles', color: '#fb923c' }
+                ]
+            }
+        };
+
+        // Initialize on DOM Ready
+        document.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            initRealtimeListeners();
+            updateLivePreview();
+        });
+
+        // Setup real-time event listeners on all inputs
+        function initRealtimeListeners() {
+            const inputs = document.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                input.addEventListener('input', () => {
+                    updateLivePreview();
+                    saveToLocalStorage();
+                });
+                input.addEventListener('change', () => {
+                    updateLivePreview();
+                    saveToLocalStorage();
+                });
+            });
+
+            // Drag and drop for photo & banner
+            setupDragAndDrop('dropAvatar', 'fileAvatar', 'avatar');
+            setupDragAndDrop('dropBanner', 'fileBanner', 'banner');
+        }
+
+        // Drag and Drop Helper
+        function setupDragAndDrop(zoneId, inputId, type) {
+            const zone = document.getElementById(zoneId);
+            const input = document.getElementById(inputId);
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                zone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    zone.classList.add('dragover');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                zone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    zone.classList.remove('dragover');
+                });
+            });
+
+            zone.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].type.startsWith('image/')) {
+                    processImageFile(files[0], type);
+                }
+            });
+        }
+
+        // Handle Image Upload (Photo or Banner)
+        function handleImageUpload(event, type) {
+            const file = event.target.files[0];
+            if (file) {
+                processImageFile(file, type);
+            }
+        }
+
+        function processImageFile(file, type) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const dataUrl = e.target.result;
+                if (type === 'avatar') {
+                    avatarDataUrl = dataUrl;
+                    document.getElementById('avatarPlaceholder').style.display = 'none';
+                    document.getElementById('avatarActive').style.display = 'flex';
+                    document.getElementById('thumbAvatar').src = dataUrl;
+                } else if (type === 'banner') {
+                    bannerDataUrl = dataUrl;
+                    document.getElementById('bannerPlaceholder').style.display = 'none';
+                    document.getElementById('bannerActive').style.display = 'flex';
+                    document.getElementById('thumbBanner').src = dataUrl;
+                }
+                updateLivePreview();
+                saveToLocalStorage();
+                showToast('Imagem carregada com sucesso!');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeImage(event, type) {
+            event.stopPropagation();
+            if (type === 'avatar') {
+                avatarDataUrl = '';
+                document.getElementById('fileAvatar').value = '';
+                document.getElementById('avatarPlaceholder').style.display = 'block';
+                document.getElementById('avatarActive').style.display = 'none';
+            } else if (type === 'banner') {
+                bannerDataUrl = '';
+                document.getElementById('fileBanner').value = '';
+                document.getElementById('bannerPlaceholder').style.display = 'block';
+                document.getElementById('bannerActive').style.display = 'none';
+            }
+            updateLivePreview();
+            saveToLocalStorage();
+            showToast('Imagem removida.');
+        }
+
+        // Accordion Toggle
+        function toggleAccordion(header) {
+            const body = header.nextElementSibling;
+            const isOpen = body.classList.contains('open');
+
+            // Close others smoothly
+            document.querySelectorAll('.accordion-body').forEach(b => b.classList.remove('open'));
+            document.querySelectorAll('.accordion-header').forEach(h => h.classList.remove('active'));
+
+            if (!isOpen) {
+                body.classList.add('open');
+                header.classList.add('active');
+            }
+        }
+
+        // Switch Card Mode (Digital Mobile vs Physical 85x55mm)
+        function switchCardMode(mode) {
+            cardMode = mode;
+            document.getElementById('btnModeDigital').classList.toggle('active', mode === 'digital');
+            document.getElementById('btnModePhysical').classList.toggle('active', mode === 'physical');
+
+            const containerDigital = document.getElementById('containerDigitalView');
+            const containerPhysical = document.getElementById('containerPhysicalView');
+            const physicalControls = document.getElementById('physicalCardControls');
+
+            if (mode === 'digital') {
+                containerDigital.style.display = 'flex';
+                containerPhysical.style.display = 'none';
+                physicalControls.style.display = 'none';
+            } else {
+                containerDigital.style.display = 'none';
+                containerPhysical.style.display = 'flex';
+                physicalControls.style.display = 'flex';
+                togglePhysicalFace('front');
+            }
+
+            updateLivePreview();
+            saveToLocalStorage();
+        }
+
+        // Toggle Physical Face (Front / Back)
+        function togglePhysicalFace(face) {
+            const front = document.getElementById('cardPhysicalFront');
+            const back = document.getElementById('cardPhysicalBack');
+            const btnFront = document.getElementById('btnFrontTab');
+            const btnBack = document.getElementById('btnBackTab');
+
+            if (face === 'front') {
+                front.style.display = 'flex';
+                back.style.display = 'none';
+                btnFront.classList.add('active');
+                btnBack.classList.remove('active');
+            } else {
+                front.style.display = 'none';
+                back.style.display = 'flex';
+                btnFront.classList.remove('active');
+                btnBack.classList.add('active');
+            }
+        }
+
+        // Custom Links Functions
+        function addCustomLinkItem(data = null) {
+            const container = document.getElementById('customLinksList');
+            const linkId = 'custom_' + Date.now() + Math.random().toString(36).substr(2, 4);
+
+            const initial = data || {
+                title: 'Meu Link',
+                url: 'https://',
+                icon: 'fas fa-link',
+                color: '#10b981'
+            };
+
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'custom-link-item';
+            itemDiv.id = linkId;
+
+            itemDiv.innerHTML = `
+                <input type="text" class="input-modern" placeholder="Título" value="${escapeHtml(initial.title)}" oninput="syncCustomLinksData()">
+                <input type="url" class="input-modern" placeholder="https://link.com" value="${escapeHtml(initial.url)}" oninput="syncCustomLinksData()">
+                <button type="button" class="btn-remove-custom-link" title="Excluir link" onclick="removeCustomLinkItem('${linkId}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+
+            container.appendChild(itemDiv);
+            syncCustomLinksData();
+        }
+
+        function removeCustomLinkItem(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+            syncCustomLinksData();
+        }
+
+        function syncCustomLinksData() {
+            const items = document.querySelectorAll('.custom-link-item');
+            customLinksData = [];
+            items.forEach(item => {
+                const inputs = item.querySelectorAll('input');
+                const title = inputs[0]?.value.trim();
+                const url = inputs[1]?.value.trim();
+                if (title && url) {
+                    customLinksData.push({ title, url, icon: 'fas fa-link', color: '#10b981' });
+                }
+            });
+            updateLivePreview();
+            saveToLocalStorage();
+        }
+
+        // Theme and Style Selection
+        function selectTheme(key) {
+            currentThemeKey = key;
+            const theme = themePresets[key];
+
+            document.querySelectorAll('.theme-card-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-theme') === key);
+            });
+
+            document.getElementById('colorBg1').value = theme.bg1;
+            document.getElementById('colorBg2').value = theme.bg2;
+            document.getElementById('colorAccent').value = theme.accent;
+            document.getElementById('colorText').value = theme.text;
+
+            updateLivePreview();
+            saveToLocalStorage();
+        }
+
+        function applyCustomColorPickers() {
+            document.querySelectorAll('.theme-card-btn').forEach(btn => btn.classList.remove('active'));
+            updateLivePreview();
+            saveToLocalStorage();
+        }
+
+        function selectFont(font) {
+            currentFont = font;
+            document.querySelectorAll('[data-font]').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-font') === font);
+            });
+            updateLivePreview();
+            saveToLocalStorage();
+        }
+
+        function selectButtonShape(shape) {
+            currentShape = shape;
+            document.querySelectorAll('[data-shape]').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-shape') === shape);
+            });
+            updateLivePreview();
+            saveToLocalStorage();
+        }
+
+        // Phone Input Auto-Formatting (BR Standard & DDI)
+        function formatPhoneInput(input) {
+            let v = input.value.replace(/\D/g, '');
+            if (v.length > 11) v = v.slice(0, 11);
+
+            if (v.length > 10) {
+                input.value = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
+            } else if (v.length > 5) {
+                input.value = `(${v.slice(0, 2)}) ${v.slice(2, 6)}-${v.slice(6)}`;
+            } else if (v.length > 2) {
+                input.value = `(${v.slice(0, 2)}) ${v.slice(2)}`;
+            } else {
+                input.value = v;
+            }
+        }
+
+        // ==========================================================================
+        // LIVE RENDER & PREVIEW RECONCILIATION
+        // ==========================================================================
+        function updateLivePreview() {
+            const nome = document.getElementById('inputNome').value.trim() || 'Seu Nome Profissional';
+            const cargo = document.getElementById('inputCargo').value.trim() || 'Seu Cargo ou Especialidade';
+            const empresa = document.getElementById('inputEmpresa').value.trim() || '';
+            const bio = document.getElementById('inputBio').value.trim() || '';
+            const bg1 = document.getElementById('colorBg1').value;
+            const bg2 = document.getElementById('colorBg2').value;
+            const accent = document.getElementById('colorAccent').value;
+            const textColor = document.getElementById('colorText').value;
+
+            // 1. Digital Card View Updates
+            const digitalCard = document.getElementById('cardPreviewDigital');
+            digitalCard.style.background = `linear-gradient(145deg, ${bg1} 0%, ${bg2} 100%)`;
+            digitalCard.style.color = textColor;
+            digitalCard.style.fontFamily = `'${currentFont}', sans-serif`;
+
+            document.getElementById('previewNome').textContent = nome;
+            document.getElementById('previewCargo').textContent = cargo;
+            
+            const elEmpresa = document.getElementById('previewEmpresa');
+            elEmpresa.textContent = empresa;
+            elEmpresa.style.display = empresa ? 'block' : 'none';
+            elEmpresa.style.color = accent;
+
+            const elBio = document.getElementById('previewBio');
+            elBio.textContent = bio;
+            elBio.style.display = bio ? 'block' : 'none';
+
+            // Avatar & Cover Banner (Always safe vector placeholder if no custom photo)
+            const elAvatar = document.getElementById('previewAvatar');
+            if (avatarDataUrl) {
+                elAvatar.src = avatarDataUrl;
+            } else {
+                elAvatar.src = DEFAULT_AVATAR_SVG;
+            }
+
+            const elCover = document.getElementById('previewCoverBanner');
+            if (bannerDataUrl) {
+                elCover.style.display = 'block';
+                elCover.style.backgroundImage = `url(${bannerDataUrl})`;
+            } else {
+                elCover.style.display = 'none';
+            }
+
+            // PIX Action Button
+            const showPix = document.getElementById('togglePix').checked;
+            const pixChave = document.getElementById('inputPixChave').value.trim();
+            const btnPix = document.getElementById('previewBtnPix');
+            if (showPix && pixChave) {
+                btnPix.style.display = 'inline-flex';
+            } else {
+                btnPix.style.display = 'none';
+            }
+
+            // Render Links
+            renderPreviewLinks();
+
+            // Render QR Codes
+            renderAllQRCodes();
+
+            // 2. Physical Card View Updates
+            updatePhysicalCardPreview(nome, cargo, empresa, bio, bg1, bg2, accent, textColor);
+        }
+
+        // Render Links on Card
+        function renderPreviewLinks() {
+            const container = document.getElementById('previewLinksContainer');
+            container.innerHTML = '';
+
+            const borderRadii = {
+                rounded: '12px',
+                pill: '9999px',
+                square: '6px',
+                glass: '12px'
+            };
+
+            const shapeRadius = borderRadii[currentShape] || '12px';
+
+            // Social & Contact links
+            socialCatalog.forEach(item => {
+                let val = '';
+                if (item.id === 'whatsapp') {
+                    const num = document.getElementById('inputWhatsapp').value.replace(/\D/g, '');
+                    if (num) val = document.getElementById('whatsappDdi').value + num;
+                } else if (item.id === 'email') {
+                    val = document.getElementById('inputEmail').value.trim();
+                } else if (item.id === 'telefone') {
+                    val = document.getElementById('inputTelefone').value.trim();
+                } else if (item.id === 'website') {
+                    val = document.getElementById('inputWebsite').value.trim();
+                } else if (item.id === 'endereco') {
+                    val = document.getElementById('inputEndereco').value.trim();
+                } else if (item.id === 'instagram') {
+                    val = document.getElementById('inputInstagram').value.trim().replace(/^@/, '');
+                } else if (item.id === 'linkedin') {
+                    val = document.getElementById('inputLinkedin').value.trim();
+                } else if (item.id === 'facebook') {
+                    val = document.getElementById('inputFacebook').value.trim();
+                } else if (item.id === 'github') {
+                    val = document.getElementById('inputGithub').value.trim().replace(/^@/, '');
+                } else if (item.id === 'youtube') {
+                    val = document.getElementById('inputYoutube').value.trim();
+                } else if (item.id === 'telegram') {
+                    val = document.getElementById('inputTelegram').value.trim().replace(/^@/, '');
+                } else if (item.id === 'twitter') {
+                    val = document.getElementById('inputTwitter').value.trim().replace(/^@/, '');
+                } else if (item.id === 'tiktok') {
+                    val = document.getElementById('inputTiktok').value.trim().replace(/^@/, '');
+                } else if (item.id === 'behance') {
+                    val = document.getElementById('inputBehance').value.trim();
+                }
+
+                if (val) {
+                    let href = val;
+                    if (item.id === 'whatsapp') {
+                        href = `https://wa.me/${val.replace('+', '')}`;
+                    } else if (item.id === 'website') {
+                        href = val.startsWith('http') ? val : 'https://' + val;
+                    } else if (item.id === 'endereco') {
+                        href = `https://maps.google.com/?q=${encodeURIComponent(val)}`;
+                    } else if (item.prefix) {
+                        href = val.startsWith('http') ? val : (item.prefix + val);
+                    }
+
+                    let iconClass = item.icon;
+                    let itemLabel = item.label;
+                    let btnColor = item.color;
+
+                    if (item.id === 'website') {
+                        if (val.toLowerCase().includes('loja') || val.toLowerCase().includes('portfolio') || val.toLowerCase().includes('portifolio')) {
+                            iconClass = 'fas fa-briefcase';
+                            itemLabel = 'Portfólio / Loja';
+                            btnColor = '#10b981';
+                        } else {
+                            iconClass = 'fas fa-globe';
+                            itemLabel = 'Website Oficial';
+                            btnColor = '#06b6d4';
+                        }
+                    }
+
+                    const linkBtn = document.createElement('a');
+                    linkBtn.href = href;
+                    linkBtn.target = '_blank';
+                    linkBtn.className = 'card-link-btn';
+                    linkBtn.style.borderRadius = shapeRadius;
+
+                    if (currentShape === 'glass') {
+                        linkBtn.style.background = 'rgba(255, 255, 255, 0.08)';
+                        linkBtn.style.backdropFilter = 'blur(10px)';
+                        linkBtn.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                    } else {
+                        linkBtn.style.backgroundColor = btnColor;
+                    }
+
+                    linkBtn.innerHTML = `
+                        <i class="${iconClass}"></i>
+                        <span>${itemLabel}</span>
+                    `;
+
+                    container.appendChild(linkBtn);
+                }
+            });
+
+            // Custom links
+            customLinksData.forEach(c => {
+                if (c.title && c.url) {
+                    const cBtn = document.createElement('a');
+                    cBtn.href = c.url.startsWith('http') ? c.url : 'https://' + c.url;
+                    cBtn.target = '_blank';
+                    cBtn.className = 'card-link-btn';
+                    cBtn.style.borderRadius = shapeRadius;
+
+                    if (currentShape === 'glass') {
+                        cBtn.style.background = 'rgba(255, 255, 255, 0.08)';
+                        cBtn.style.backdropFilter = 'blur(10px)';
+                        cBtn.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                    } else {
+                        cBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)';
+                        cBtn.style.color = '#0b0f19';
+                        cBtn.style.fontWeight = '600';
+                    }
+
+                    cBtn.innerHTML = `
+                        <i class="${c.icon || 'fas fa-link'}"></i>
+                        <span>${escapeHtml(c.title)}</span>
+                    `;
+
+                    container.appendChild(cBtn);
+                }
+            });
+        }
+
+        // Render QR Codes (Digital & Physical) using robust qrcode-generator
+        function renderAllQRCodes() {
+            const showQr = document.getElementById('toggleQrCode').checked;
+            const qrContainer = document.getElementById('previewQrContainer');
+            const qrTarget = document.getElementById('qrCodeTarget').value;
+            const qrHolder = document.getElementById('previewQrHolder');
+            const qrLabel = document.getElementById('previewQrLabel');
+
+            if (!showQr) {
+                qrContainer.style.display = 'none';
+                return;
+            }
+
+            qrContainer.style.display = 'flex';
+
+            // Build QR Payload (clean text without heavy image bytes)
+            let qrText = '';
+            if (qrTarget === 'vcard') {
+                qrText = generateVCardContent(true); // true = lightweight for QR Code
+                qrLabel.textContent = 'Aponte a câmera para salvar o contato';
+            } else if (qrTarget === 'whatsapp') {
+                const num = document.getElementById('inputWhatsapp').value.replace(/\D/g, '');
+                const ddi = document.getElementById('whatsappDdi').value.replace('+', '');
+                qrText = num ? `https://wa.me/${ddi}${num}` : 'https://4u.ia.br';
+                qrLabel.textContent = 'Escaneie para conversar no WhatsApp';
+            } else if (qrTarget === 'pix') {
+                qrText = document.getElementById('inputPixChave').value.trim() || 'Chave PIX';
+                qrLabel.textContent = 'Escaneie para pagar via PIX';
+            } else {
+                qrText = document.getElementById('inputWebsite').value.trim() || 'https://4u.ia.br';
+                qrLabel.textContent = 'Escaneie para abrir o website';
+            }
+
+            try {
+                if (typeof qrcode === 'function') {
+                    if (qrcode.stringToBytesFuncs && qrcode.stringToBytesFuncs['UTF-8']) {
+                        qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];
+                    }
+                    // 0 = auto-detect typeNumber
+                    const qr = qrcode(0, 'M');
+                    qr.addData(qrText);
+                    qr.make();
+
+                    // Render as scalable vector SVG
+                    qrHolder.innerHTML = qr.createSvgTag(3, 2);
+
+                    // Render on Physical Card Back
+                    const physBackHolder = document.getElementById('physBackQr');
+                    if (physBackHolder) {
+                        physBackHolder.innerHTML = qr.createSvgTag(2, 1);
+                    }
+                }
+            } catch (err) {
+                console.warn('QR Code nível M falhou, tentando fallback nível L:', err);
+                try {
+                    const qr = qrcode(0, 'L');
+                    qr.addData(qrText);
+                    qr.make();
+                    qrHolder.innerHTML = qr.createSvgTag(3, 2);
+                    const physBackHolder = document.getElementById('physBackQr');
+                    if (physBackHolder) physBackHolder.innerHTML = qr.createSvgTag(2, 1);
+                } catch (e) {
+                    console.error('Falha geral no QR Code:', e);
+                }
+            }
+        }
+
+        // Update Physical Card Face Layout
+        function updatePhysicalCardPreview(nome, cargo, empresa, bio, bg1, bg2, accent, textColor) {
+            const front = document.getElementById('cardPhysicalFront');
+            const back = document.getElementById('cardPhysicalBack');
+
+            [front, back].forEach(face => {
+                face.style.background = `linear-gradient(135deg, ${bg1} 0%, ${bg2} 100%)`;
+                face.style.color = textColor;
+                face.style.fontFamily = `'${currentFont}', sans-serif`;
+            });
+
+            document.getElementById('physNomeFront').textContent = nome;
+            document.getElementById('physCargoFront').textContent = cargo;
+            document.getElementById('physEmpresaFront').textContent = empresa;
+            document.getElementById('physEmpresaFront').style.color = accent;
+
+            const physAvatar = document.getElementById('physAvatarFront');
+            physAvatar.src = avatarDataUrl || DEFAULT_AVATAR_SVG;
+
+            // Contacts snippet
+            const contactsGrid = document.getElementById('physContactsFront');
+            contactsGrid.innerHTML = '';
+
+            const wa = document.getElementById('inputWhatsapp').value.trim();
+            const em = document.getElementById('inputEmail').value.trim();
+            const site = document.getElementById('inputWebsite').value.trim();
+            const tel = document.getElementById('inputTelefone').value.trim();
+
+            if (wa) contactsGrid.innerHTML += `<div><i class="fab fa-whatsapp" style="color:#25d366"></i> ${escapeHtml(wa)}</div>`;
+            if (em) contactsGrid.innerHTML += `<div><i class="fas fa-envelope" style="color:#ea4335"></i> ${escapeHtml(em)}</div>`;
+            if (site) contactsGrid.innerHTML += `<div><i class="fas fa-globe" style="color:#06b6d4"></i> ${escapeHtml(site.replace(/^https?:\/\//, ''))}</div>`;
+            if (tel) contactsGrid.innerHTML += `<div><i class="fas fa-phone" style="color:#60a5fa"></i> ${escapeHtml(tel)}</div>`;
+
+            // Back face info
+            document.getElementById('physBackNome').textContent = nome;
+            document.getElementById('physBackSlogan').textContent = bio || cargo;
+        }
+
+        // ==========================================================================
+        // EXPORT ENGINES (HTML, PDF, PNG, VCARD)
+        // ==========================================================================
+
+        // 1. Export Standalone Responsive HTML with Open Graph & SVG QR Code
+        function exportHTMLFile() {
+            const nome = document.getElementById('inputNome').value.trim() || 'Cartao';
+            const cargo = document.getElementById('inputCargo').value.trim() || 'Profissional';
+            const bio = document.getElementById('inputBio').value.trim() || '';
+            const bg1 = document.getElementById('colorBg1').value;
+            const bg2 = document.getElementById('colorBg2').value;
+            const textColor = document.getElementById('colorText').value;
+
+            // Clone preview links & QR SVG
+            const linksHtml = document.getElementById('previewLinksContainer').innerHTML;
+            const showQr = document.getElementById('toggleQrCode').checked;
+            const qrSvg = document.querySelector('#previewQrHolder svg');
+            const qrSvgHtml = qrSvg ? qrSvg.outerHTML : '';
+
+            const htmlContent = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${escapeHtml(nome)} - Cartão Digital Profissional</title>
+    <meta name="description" content="${escapeHtml(cargo)} • ${escapeHtml(bio)}">
+    <!-- Open Graph (WhatsApp, Telegram, LinkedIn) -->
+    <meta property="og:title" content="${escapeHtml(nome)} | ${escapeHtml(cargo)}">
+    <meta property="og:description" content="${escapeHtml(bio || cargo)}">
+    <meta property="og:type" content="profile">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=${encodeURIComponent(currentFont)}:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: '${currentFont}', sans-serif; }
+        body { min-height: 100vh; background: #0b0f19; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .card-shell { width: 100%; max-width: 400px; border-radius: 28px; background: linear-gradient(145deg, ${bg1} 0%, ${bg2} 100%); color: ${textColor}; padding: 36px 24px; box-shadow: 0 25px 60px rgba(0,0,0,0.6); text-align: center; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden; }
+        .card-banner { position: absolute; top: 0; left: 0; right: 0; height: 110px; background-size: cover; background-position: center; opacity: 0.85; mask-image: linear-gradient(to bottom, black 60%, transparent 100%); -webkit-mask-image: linear-gradient(to bottom, black 60%, transparent 100%); }
+        .avatar-box { position: relative; z-index: 2; margin-bottom: 12px; }
+        .avatar { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; border: 3px solid #10b981; background: #1e293b; display: inline-block; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; position: relative; z-index: 2; }
+        .cargo { font-size: 14px; opacity: 0.8; margin-bottom: 8px; position: relative; z-index: 2; }
+        .bio { font-size: 12.5px; opacity: 0.7; margin-bottom: 20px; line-height: 1.4; position: relative; z-index: 2; }
+        .links-col { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-bottom: 20px; position: relative; z-index: 2; }
+        .card-link-btn { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-radius: 12px; text-decoration: none; color: #fff; font-size: 13.5px; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.25); transition: transform 0.2s; }
+        .card-link-btn:hover { transform: translateY(-2px); }
+        .qr-section { background: #ffffff; padding: 10px; border-radius: 14px; display: inline-flex; flex-direction: column; align-items: center; width: 130px; height: 130px; margin: 10px auto 0; box-shadow: 0 4px 16px rgba(0,0,0,0.3); position: relative; z-index: 2; }
+        .qr-section svg { width: 100% !important; height: 100% !important; display: block; }
+        .footer-tag { font-size: 10.5px; opacity: 0.4; margin-top: 24px; font-family: monospace; position: relative; z-index: 2; }
+    </style>
+</head>
+<body>
+    <div class="card-shell">
+        ${bannerDataUrl ? `<div class="card-banner" style="background-image: url('${bannerDataUrl}');"></div>` : ''}
+        <div class="avatar-box">
+            <img class="avatar" src="${avatarDataUrl || DEFAULT_AVATAR_SVG}" alt="">
+        </div>
+        <h1>${escapeHtml(nome)}</h1>
+        <p class="cargo">${escapeHtml(cargo)}</p>
+        ${bio ? `<p class="bio">${escapeHtml(bio)}</p>` : ''}
+        <div class="links-col">
+            ${linksHtml}
+        </div>
+        ${showQr && qrSvgHtml ? `
+        <div class="qr-section">
+            ${qrSvgHtml}
+        </div>
+        <div style="font-size: 10px; opacity: 0.7; margin-top: 6px; position: relative; z-index: 2;">Aponte a câmera para salvar o contato</div>` : ''}
+        <div class="footer-tag">Criado com 4U.IA.BR // CardCraft Pro</div>
+    </div>
+</body>
+</html>`;
+
+            const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${nome.replace(/\s+/g, '_').toLowerCase()}_cartao.html`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Página HTML exportada com sucesso!');
+        }
+
+        // 2. Export PDF with Clickable Links via jsPDF
+        async function exportPDFDocument() {
+            const { jsPDF } = window.jspdf;
+            const nome = document.getElementById('inputNome').value.trim() || 'Cartao';
+            showToast('Processando PDF em alta definição...');
+
+            try {
+                let targetEl = null;
+                let isPhysical = (cardMode === 'physical');
+
+                if (isPhysical) {
+                    targetEl = document.getElementById('cardPhysicalFront');
+                } else {
+                    targetEl = document.getElementById('cardPreviewDigital');
+                }
+
+                const canvas = await html2canvas(targetEl, {
+                    scale: 3,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: null
+                });
+
+                const imgData = canvas.toDataURL('image/png');
+                const cardWidth = targetEl.offsetWidth;
+                const cardHeight = targetEl.offsetHeight;
+                const aspectRatio = cardHeight / cardWidth;
+
+                let pdfWidth = isPhysical ? 85 : 80;
+                let pdfHeight = pdfWidth * aspectRatio;
+
+                const pdf = new jsPDF({
+                    orientation: pdfHeight > pdfWidth ? 'portrait' : 'landscape',
+                    unit: 'mm',
+                    format: [pdfWidth, pdfHeight]
+                });
+
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+                // Add real clickable link annotations on the PDF
+                const scaleX = pdfWidth / cardWidth;
+                const scaleY = pdfHeight / cardHeight;
+                const links = targetEl.querySelectorAll('a');
+
+                links.forEach(link => {
+                    const rect = link.getBoundingClientRect();
+                    const targetRect = targetEl.getBoundingClientRect();
+                    const href = link.getAttribute('href');
+
+                    if (href && href !== '#') {
+                        const relX = (rect.left - targetRect.left) * scaleX;
+                        const relY = (rect.top - targetRect.top) * scaleY;
+                        const w = rect.width * scaleX;
+                        const h = rect.height * scaleY;
+                        pdf.link(relX, relY, w, h, { url: href });
+                    }
+                });
+
+                pdf.save(`${nome.replace(/\s+/g, '_').toLowerCase()}_cartao.pdf`);
+                showToast('PDF gerado com links clicáveis!');
+            } catch (err) {
+                console.error(err);
+                showToast('Erro ao exportar PDF. Tente novamente.');
+            }
+        }
+
+        // 3. Export Image (PNG / JPG 300 DPI)
+        async function exportImageCapture(format = 'png') {
+            const nome = document.getElementById('inputNome').value.trim() || 'Cartao';
+            showToast('Capturando imagem em 300 DPI...');
+
+            try {
+                const targetEl = (cardMode === 'physical') 
+                    ? (document.getElementById('cardPhysicalFront').style.display !== 'none' ? document.getElementById('cardPhysicalFront') : document.getElementById('cardPhysicalBack'))
+                    : document.getElementById('cardPreviewDigital');
+
+                const canvas = await html2canvas(targetEl, {
+                    scale: 3,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: null
+                });
+
+                const link = document.createElement('a');
+                link.download = `${nome.replace(/\s+/g, '_').toLowerCase()}_cartao.${format}`;
+                link.href = canvas.toDataURL(format === 'png' ? 'image/png' : 'image/jpeg', 0.95);
+                link.click();
+                showToast('Imagem exportada com nitidez máxima!');
+            } catch (err) {
+                console.error(err);
+                showToast('Erro ao exportar imagem.');
+            }
+        }
+
+        // 4. Download vCard (.vcf)
+        function downloadVCardFile() {
+            const nome = document.getElementById('inputNome').value.trim() || 'Contato';
+            const vcfContent = generateVCardContent(false); // false = include photo in file download
+            const blob = new Blob([vcfContent], { type: 'text/vcard;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${nome.replace(/\s+/g, '_').toLowerCase()}.vcf`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('vCard (.vcf) baixado! Abra no celular para salvar.');
+        }
+
+        // Generate vCard 3.0 Standard String (forQR keeps payload ultra-light for instant camera scanning)
+        function generateVCardContent(forQR = false) {
+            const nome = document.getElementById('inputNome').value.trim() || 'Contato';
+            const cargo = document.getElementById('inputCargo').value.trim() || '';
+            const empresa = document.getElementById('inputEmpresa').value.trim() || '';
+            const bio = document.getElementById('inputBio').value.trim() || '';
+            const email = document.getElementById('inputEmail').value.trim() || '';
+            const tel = document.getElementById('inputTelefone').value.trim() || '';
+            const ddi = document.getElementById('whatsappDdi').value;
+            const waRaw = document.getElementById('inputWhatsapp').value.replace(/\D/g, '');
+            const wa = waRaw ? (ddi + waRaw) : '';
+            const site = document.getElementById('inputWebsite').value.trim() || '';
+            const endereco = document.getElementById('inputEndereco').value.trim() || '';
+
+            let vcf = "BEGIN:VCARD\r\nVERSION:3.0\r\n";
+            vcf += `FN:${nome}\r\n`;
+            if (cargo) vcf += `TITLE:${cargo}\r\n`;
+            if (empresa) vcf += `ORG:${empresa}\r\n`;
+            if (wa) vcf += `TEL;TYPE=CELL,VOICE:${wa}\r\n`;
+            if (tel) vcf += `TEL;TYPE=WORK,VOICE:${tel}\r\n`;
+            if (email) vcf += `EMAIL;TYPE=PREF,INTERNET:${email}\r\n`;
+            if (site) vcf += `URL:${site}\r\n`;
+            if (endereco) vcf += `ADR;TYPE=WORK:;;${endereco};;;;\r\n`;
+            if (bio && !forQR) vcf += `NOTE:${bio}\r\n`;
+
+            const ig = document.getElementById('inputInstagram').value.trim();
+            const li = document.getElementById('inputLinkedin').value.trim();
+            const fb = document.getElementById('inputFacebook').value.trim();
+            const gh = document.getElementById('inputGithub').value.trim();
+            if (gh) vcf += `X-SOCIALPROFILE;type=GitHub:${gh.startsWith('http') ? gh : 'https://github.com/' + gh}\r\n`;
+            if (li) vcf += `X-SOCIALPROFILE;type=LinkedIn:${li.startsWith('http') ? li : 'https://linkedin.com/in/' + li}\r\n`;
+            if (ig) vcf += `X-SOCIALPROFILE;type=Instagram:${ig.startsWith('http') ? ig : 'https://instagram.com/' + ig.replace(/^@/, '')}\r\n`;
+            if (fb) vcf += `X-SOCIALPROFILE;type=Facebook:${fb.startsWith('http') ? fb : 'https://facebook.com/' + fb}\r\n`;
+
+            // Only embed photo bytes when downloading the .vcf file, NEVER inside QR code
+            if (!forQR && avatarDataUrl && avatarDataUrl.includes('base64,')) {
+                const parts = avatarDataUrl.split('base64,');
+                const mime = parts[0].includes('png') ? 'PNG' : 'JPEG';
+                vcf += `PHOTO;ENCODING=b;TYPE=${mime}:${parts[1].replace(/[\r\n]/g, '')}\r\n`;
+            }
+
+            vcf += "END:VCARD\r\n";
+            return vcf;
+        }
+
+        // Web Share Direct Trigger
+        async function triggerWebShare() {
+            const nome = document.getElementById('inputNome').value.trim() || 'Meu Cartão Digital';
+            const cargo = document.getElementById('inputCargo').value.trim() || '';
+            const site = document.getElementById('inputWebsite').value.trim() || window.location.href;
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: `${nome} - Cartão Digital`,
+                        text: `Olá! Aqui está meu cartão de visitas digital (${cargo}):`,
+                        url: site
+                    });
+                    showToast('Compartilhado com sucesso!');
+                } catch (e) {
+                    console.log('Share cancelado', e);
+                }
+            } else {
+                navigator.clipboard.writeText(site);
+                showToast('Link do website copiado para a área de transferência!');
+            }
+        }
+
+        // Copy Card to Clipboard as Image
+        async function copyCardImageToClipboard() {
+            try {
+                showToast('Renderizando imagem para área de transferência...');
+                const targetEl = (cardMode === 'physical') 
+                    ? document.getElementById('cardPhysicalFront') 
+                    : document.getElementById('cardPreviewDigital');
+
+                const canvas = await html2canvas(targetEl, { scale: 2, useCORS: true, backgroundColor: null });
+                canvas.toBlob(async (blob) => {
+                    if (navigator.clipboard && navigator.clipboard.write) {
+                        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                        showToast('Cartão copiado! Cole direto no WhatsApp ou Slack (Ctrl+V).');
+                    } else {
+                        showToast('Seu navegador não suporta colar imagem diretamente.');
+                    }
+                });
+            } catch (err) {
+                console.error(err);
+                showToast('Erro ao copiar imagem.');
+            }
+        }
+
+        // Direct PIX Copy Handler
+        function copyPixDirectly() {
+            const pixChave = document.getElementById('inputPixChave').value.trim();
+            if (!pixChave) {
+                showToast('Nenhuma chave PIX configurada.');
+                return;
+            }
+            navigator.clipboard.writeText(pixChave);
+            showToast('Chave PIX copiada! Abra seu banco para transferir.');
+        }
+
+        // Download Isolated QR Code in High-Res PNG
+        function downloadQrCodePng() {
+            const svgEl = document.querySelector('#previewQrHolder svg');
+            if (!svgEl) {
+                showToast('Gere o QR Code primeiro.');
+                return;
+            }
+            const svgData = new XMLSerializer().serializeToString(svgEl);
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const URL = window.URL || window.webkitURL || window;
+            const blobURL = URL.createObjectURL(svgBlob);
+            
+            const image = new Image();
+            image.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 400;
+                canvas.height = 400;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, 400, 400);
+                ctx.drawImage(image, 20, 20, 360, 360);
+                
+                const link = document.createElement('a');
+                link.download = 'qrcode_contato.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                URL.revokeObjectURL(blobURL);
+                showToast('QR Code em PNG baixado com alta resolução!');
+            };
+            image.src = blobURL;
+        }
+
+        // ==========================================================================
+        // LOCAL STORAGE & PRESETS MANAGEMENT
+        // ==========================================================================
+        const STORAGE_KEY = 'cardcraft_pro_v2';
+
+        function saveToLocalStorage() {
+            const state = {
+                cardMode,
+                currentThemeKey,
+                currentFont,
+                currentShape,
+                avatarDataUrl,
+                bannerDataUrl,
+                customLinksData,
+                inputs: {
+                    inputNome: document.getElementById('inputNome').value,
+                    inputCargo: document.getElementById('inputCargo').value,
+                    inputEmpresa: document.getElementById('inputEmpresa').value,
+                    inputBio: document.getElementById('inputBio').value,
+                    whatsappDdi: document.getElementById('whatsappDdi').value,
+                    inputWhatsapp: document.getElementById('inputWhatsapp').value,
+                    inputEmail: document.getElementById('inputEmail').value,
+                    inputTelefone: document.getElementById('inputTelefone').value,
+                    inputWebsite: document.getElementById('inputWebsite').value,
+                    inputEndereco: document.getElementById('inputEndereco').value,
+                    togglePix: document.getElementById('togglePix').checked,
+                    pixTipo: document.getElementById('pixTipo').value,
+                    inputPixChave: document.getElementById('inputPixChave').value,
+                    inputPixNome: document.getElementById('inputPixNome').value,
+                    inputInstagram: document.getElementById('inputInstagram').value,
+                    inputLinkedin: document.getElementById('inputLinkedin').value,
+                    inputFacebook: document.getElementById('inputFacebook').value,
+                    inputGithub: document.getElementById('inputGithub').value,
+                    inputYoutube: document.getElementById('inputYoutube').value,
+                    inputTelegram: document.getElementById('inputTelegram').value,
+                    inputTwitter: document.getElementById('inputTwitter').value,
+                    inputTiktok: document.getElementById('inputTiktok').value,
+                    inputBehance: document.getElementById('inputBehance').value,
+                    toggleQrCode: document.getElementById('toggleQrCode').checked,
+                    qrCodeTarget: document.getElementById('qrCodeTarget').value,
+                    colorBg1: document.getElementById('colorBg1').value,
+                    colorBg2: document.getElementById('colorBg2').value,
+                    colorAccent: document.getElementById('colorAccent').value,
+                    colorText: document.getElementById('colorText').value
+                }
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (!saved) {
+                    // Load default 4U Engineer preset if virgin
+                    applyPreset('engenheiro');
+                    return;
+                }
+                const state = JSON.parse(saved);
+
+                cardMode = state.cardMode || 'digital';
+                currentThemeKey = state.currentThemeKey || 'tech';
+                currentFont = state.currentFont || 'Inter';
+                currentShape = state.currentShape || 'rounded';
+                avatarDataUrl = state.avatarDataUrl || '';
+                bannerDataUrl = state.bannerDataUrl || '';
+                customLinksData = state.customLinksData || [];
+
+                if (state.inputs) {
+                    Object.keys(state.inputs).forEach(key => {
+                        const el = document.getElementById(key);
+                        if (el) {
+                            if (el.type === 'checkbox') {
+                                el.checked = state.inputs[key];
+                            } else {
+                                el.value = state.inputs[key];
+                            }
+                        }
+                    });
+                }
+
+                // Restore custom links UI
+                const container = document.getElementById('customLinksList');
+                container.innerHTML = '';
+                customLinksData.forEach(d => addCustomLinkItem(d));
+
+                // Restore avatar and banner previews
+                if (avatarDataUrl) {
+                    document.getElementById('avatarPlaceholder').style.display = 'none';
+                    document.getElementById('avatarActive').style.display = 'flex';
+                    document.getElementById('thumbAvatar').src = avatarDataUrl;
+                }
+                if (bannerDataUrl) {
+                    document.getElementById('bannerPlaceholder').style.display = 'none';
+                    document.getElementById('bannerActive').style.display = 'flex';
+                    document.getElementById('thumbBanner').src = bannerDataUrl;
+                }
+
+                selectTheme(currentThemeKey);
+                selectFont(currentFont);
+                selectButtonShape(currentShape);
+                switchCardMode(cardMode);
+            } catch (e) {
+                console.error('Falha ao restaurar localStorage', e);
+                applyPreset('engenheiro');
+            }
+        }
+
+        // Apply a full Professional Preset
+        function applyPreset(presetKey) {
+            const data = professionalPresets[presetKey];
+            if (!data) return;
+
+            document.getElementById('inputNome').value = data.nome;
+            document.getElementById('inputCargo').value = data.cargo;
+            document.getElementById('inputEmpresa').value = data.empresa;
+            document.getElementById('inputBio').value = data.bio;
+            document.getElementById('whatsappDdi').value = data.whatsappDdi || '+55';
+            document.getElementById('inputWhatsapp').value = data.whatsapp;
+            document.getElementById('inputEmail').value = data.email;
+            document.getElementById('inputTelefone').value = data.telefone;
+            document.getElementById('inputWebsite').value = data.website;
+            document.getElementById('inputEndereco').value = data.endereco;
+            document.getElementById('togglePix').checked = data.togglePix;
+            document.getElementById('pixTipo').value = data.pixTipo;
+            document.getElementById('inputPixChave').value = data.pixChave;
+            document.getElementById('inputPixNome').value = data.pixNome;
+            document.getElementById('inputInstagram').value = data.instagram;
+            document.getElementById('inputLinkedin').value = data.linkedin;
+            document.getElementById('inputFacebook').value = data.facebook || '';
+            document.getElementById('inputGithub').value = data.github;
+            document.getElementById('inputYoutube').value = data.youtube;
+            document.getElementById('inputTelegram').value = data.telegram;
+            document.getElementById('inputTwitter').value = data.twitter;
+            document.getElementById('inputTiktok').value = data.tiktok;
+            document.getElementById('inputBehance').value = data.behance;
+
+            // Apply Images from preset if available
+            if (data.avatarDataUrl !== undefined) {
+                avatarDataUrl = data.avatarDataUrl;
+                if (avatarDataUrl) {
+                    document.getElementById('avatarPlaceholder').style.display = 'none';
+                    document.getElementById('avatarActive').style.display = 'flex';
+                    document.getElementById('thumbAvatar').src = avatarDataUrl;
+                } else {
+                    document.getElementById('avatarPlaceholder').style.display = 'block';
+                    document.getElementById('avatarActive').style.display = 'none';
+                }
+            }
+            if (data.bannerDataUrl !== undefined) {
+                bannerDataUrl = data.bannerDataUrl;
+                if (bannerDataUrl) {
+                    document.getElementById('bannerPlaceholder').style.display = 'none';
+                    document.getElementById('bannerActive').style.display = 'flex';
+                    document.getElementById('thumbBanner').src = bannerDataUrl;
+                } else {
+                    document.getElementById('bannerPlaceholder').style.display = 'block';
+                    document.getElementById('bannerActive').style.display = 'none';
+                }
+            }
+
+            // Custom links
+            const container = document.getElementById('customLinksList');
+            container.innerHTML = '';
+            customLinksData = data.customLinks || [];
+            customLinksData.forEach(l => addCustomLinkItem(l));
+
+            selectTheme(data.theme || 'tech');
+            selectFont(data.font || 'Inter');
+            selectButtonShape(data.shape || 'rounded');
+
+            updateLivePreview();
+            saveToLocalStorage();
+            showToast(`Template "${data.nome}" carregado!`);
+        }
+
+        // Modal for Presets Picker
+        function openPresetModal() {
+            const choice = prompt("Escolha o template que deseja carregar:\n1 - Fabiano Braga (4U.IA.BR Flagship)\n2 - Advocacia & Consultoria\n3 - Médico & Especialista de Saúde\n4 - Designer & Artista Visual\n\nDigite 1, 2, 3 ou 4:");
+            if (choice === '1') applyPreset('engenheiro');
+            else if (choice === '2') applyPreset('advogada');
+            else if (choice === '3') applyPreset('medico');
+            else if (choice === '4') applyPreset('designer');
+        }
+
+        function resetFormWithConfirm() {
+            if (confirm("Deseja realmente limpar todos os campos do cartão?")) {
+                localStorage.removeItem(STORAGE_KEY);
+                avatarDataUrl = '';
+                bannerDataUrl = '';
+                customLinksData = [];
+                document.querySelectorAll('input:not([type="checkbox"]):not([type="color"]), textarea').forEach(i => i.value = '');
+                document.getElementById('customLinksList').innerHTML = '';
+                document.getElementById('avatarActive').style.display = 'none';
+                document.getElementById('avatarPlaceholder').style.display = 'block';
+                document.getElementById('bannerActive').style.display = 'none';
+                document.getElementById('bannerPlaceholder').style.display = 'block';
+                selectTheme('tech');
+                selectFont('Inter');
+                selectButtonShape('rounded');
+                updateLivePreview();
+                showToast('Formulário limpo.');
+            }
+        }
+
+        // Helper Toast Notification
+        function showToast(msg) {
+            const toast = document.getElementById('toastBox');
+            document.getElementById('toastMsg').textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3200);
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+</html>

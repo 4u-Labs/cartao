@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CardCraft - Gerador de Cartão de Visita Digital</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .font-display {
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        /* Glass Effects */
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-dark {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glow-purple {
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
+        }
+
+        .glow-text {
+            text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+        }
+
+        /* Input Styles */
+        .input-modern {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            color: #ffffff;
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+
+        .input-modern::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .input-modern:focus {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(139, 92, 246, 0.5);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+            outline: none;
+        }
+
+        select.input-modern {
+            cursor: pointer;
+        }
+
+        select.input-modern option {
+            background: #1a1a2e;
+            color: #ffffff;
+        }
+
+        /* Card Preview */
+        .card-preview {
+            background: linear-gradient(145deg, #1e1e2f 0%, #2d2d44 100%);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 100px rgba(139, 92, 246, 0.1);
+        }
+
+        /* Social Buttons */
+        .social-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 500;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .social-btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .social-btn i {
+            width: 24px;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        /* Accordion */
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+        }
+
+        .accordion-content.open {
+            max-height: 1000px;
+        }
+
+        .accordion-header {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            border-radius: 12px;
+        }
+
+        .accordion-header:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .accordion-icon {
+            transition: transform 0.3s ease;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .accordion-header.active .accordion-icon {
+            transform: rotate(180deg);
+        }
+
+        .accordion-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .accordion-title-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .accordion-title span {
+            font-weight: 500;
+        }
+
+        /* Color Picker */
+        .color-picker-wrapper {
+            position: relative;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .color-picker-wrapper input[type="color"] {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            top: -10px;
+            left: -10px;
+            cursor: pointer;
+            border: none;
+        }
+
+        /* Export Buttons */
+        .export-btn {
+            transition: all 0.3s ease;
+            padding: 16px;
+            border-radius: 12px;
+            font-weight: 500;
+            font-size: 14px;
+            border: none;
+            cursor: pointer;
+            color: #ffffff;
+            text-align: center;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 40px rgba(139, 92, 246, 0.4);
+        }
+
+        .export-btn i {
+            display: block;
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        .export-btn-blue {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        }
+
+        .export-btn-red {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        }
+
+        .export-btn-green {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+        }
+
+        /* Floating Shapes */
+        .floating-shapes {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .shape-1 {
+            width: 256px;
+            height: 256px;
+            background: rgba(139, 92, 246, 0.1);
+            top: 80px;
+            left: -128px;
+            animation-delay: 0s;
+        }
+
+        .shape-2 {
+            width: 384px;
+            height: 384px;
+            background: rgba(236, 72, 153, 0.1);
+            top: 50%;
+            right: -192px;
+            animation-delay: 5s;
+        }
+
+        .shape-3 {
+            width: 192px;
+            height: 192px;
+            background: rgba(59, 130, 246, 0.1);
+            bottom: 80px;
+            left: 25%;
+            animation-delay: 10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.5; }
+            50% { transform: translateY(-30px) rotate(180deg); opacity: 0.8; }
+        }
+
+        /* Photo Upload */
+        .photo-upload-zone {
+            border: 2px dashed rgba(139, 92, 246, 0.4);
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .photo-upload-zone:hover, .photo-upload-zone.dragover {
+            border-color: rgba(139, 92, 246, 0.8);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(139, 92, 246, 0.5);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 92, 246, 0.7);
+        }
+
+        /* Profile Ring */
+        .profile-ring {
+            background: linear-gradient(135deg, #8b5cf6, #ec4899, #f59e0b, #10b981, #3b82f6, #8b5cf6);
+            padding: 4px;
+            border-radius: 50%;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
+            50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6); }
+        }
+
+        .animate-pulse-glow {
+            animation: pulse-glow 2s infinite;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        .header {
+            padding: 24px 0;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .logo-text h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a78bfa, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-text p {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .header-badge {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        @media (min-width: 640px) {
+            .header-badge {
+                display: flex;
+            }
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 32px;
+            padding-bottom: 48px;
+        }
+
+        @media (min-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* Editor Panel */
+        .editor-panel {
+            border-radius: 24px;
+            padding: 24px;
+        }
+
+        .editor-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-label {
+            display: block;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-row select {
+            width: 96px;
+            flex-shrink: 0;
+        }
+
+        .input-row input {
+            flex: 1;
+        }
+
+        /* Theme Selector */
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .theme-btn {
+            padding: 12px;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .theme-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .theme-btn.active {
+            border-color: #8b5cf6;
+        }
+
+        .theme-btn-inner {
+            width: 100%;
+            height: 32px;
+            border-radius: 8px;
+        }
+
+        /* Color Pickers Row */
+        .color-pickers-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .color-picker-item {
+            text-align: center;
+        }
+
+        .color-picker-item p {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 4px;
+        }
+
+        /* Button Style Selector */
+        .btn-style-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-style-btn {
+            flex: 1;
+            padding: 12px;
+            font-size: 14px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        .btn-style-btn.active {
+            border-color: #8b5cf6;
+        }
+
+        .btn-style-btn:hover {
+            border-color: #8b5cf6;
+        }
+
+        /* Export Section */
+        .export-section {
+            margin-top: 16px;
+            border-radius: 24px;
+            padding: 24px;
+        }
+
+        .export-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .export-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        /* Preview Panel */
+        .preview-panel {
+            border-radius: 24px;
+            padding: 24px;
+        }
+
+        @media (min-width: 1024px) {
+            .preview-panel {
+                position: sticky;
+                top: 32px;
+            }
+        }
+
+        .preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .preview-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Phone Mockup */
+        .phone-container {
+            display: flex;
+            justify-content: center;
+        }
+
+        .phone-frame {
+            width: 320px;
+            height: 640px;
+            background: #111827;
+            border-radius: 48px;
+            padding: 12px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+            border: 4px solid #1f2937;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #1f2937;
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .phone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 128px;
+            height: 28px;
+            background: #111827;
+            border-radius: 0 0 16px 16px;
+            z-index: 10;
+        }
+
+        /* Card Content */
+        .card-content {
+            width: 100%;
+            height: 100%;
+            padding: 24px;
+            padding-top: 40px;
+            overflow-y: auto;
+        }
+
+        .card-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .profile-photo {
+            margin-bottom: 16px;
+        }
+
+        .profile-photo img {
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #374151;
+        }
+
+        .profile-name {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .profile-title {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 24px;
+        }
+
+        .links-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .empty-links {
+            text-align: center;
+            padding: 32px 0;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .empty-links i {
+            font-size: 32px;
+            margin-bottom: 8px;
+            opacity: 0.5;
+        }
+
+        .empty-links p {
+            font-size: 14px;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 32px 0;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .footer i {
+            color: #ec4899;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            transform: translateY(80px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast i {
+            font-size: 20px;
+        }
+
+        /* Hidden */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Icon Colors */
+        .text-purple { color: #a78bfa; }
+        .text-green { color: #4ade80; }
+        .text-pink { color: #f472b6; }
+        .text-orange { color: #fb923c; }
+        .text-yellow { color: #fbbf24; }
+        .text-red { color: #f87171; }
+        .text-blue { color: #60a5fa; }
+        .text-sky { color: #38bdf8; }
+        .text-gray { color: #d1d5db; }
+
+        /* Background Gradients */
+        .bg-purple-gradient { background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(139, 92, 246, 0.3) 100%); }
+        .bg-green-gradient { background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.3) 100%); }
+        .bg-pink-gradient { background: linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(236, 72, 153, 0.3) 100%); }
+        .bg-orange-gradient { background: linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(249, 115, 22, 0.3) 100%); }
+
+        /* Theme buttons backgrounds */
+        .theme-dark { background: linear-gradient(135deg, #1f2937 0%, #111827 100%); }
+        .theme-purple { background: linear-gradient(135deg, #581c87 0%, #3b0764 100%); }
+        .theme-ocean { background: linear-gradient(135deg, #0c4a6e 0%, #0e7490 100%); }
+        .theme-sunset { background: linear-gradient(135deg, #9a3412 0%, #be185d 100%); }
+
+        .theme-dark-inner { background: linear-gradient(135deg, #374151 0%, #1f2937 100%); }
+        .theme-purple-inner { background: linear-gradient(135deg, #7c3aed 0%, #581c87 100%); }
+        .theme-ocean-inner { background: linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%); }
+        .theme-sunset-inner { background: linear-gradient(135deg, #f97316 0%, #ec4899 100%); }
+
+        /* Rodapé Estilo Premium 4U.IA.BR */
+        .footer-clean { position: relative; padding: 2rem 0; color: #4b5563; }
+        .footer-link-group { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 0.5rem; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500; }
+        .footer-dot { width: 3px; height: 3px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); }
+        .footer-a { transition: all 0.2s; text-decoration: none; color: inherit; }
+        .footer-a:hover { color: white; opacity: 1; }
+    </style>
+</head>
+<body>
+    <!-- Floating Background Shapes -->
+    <div class="floating-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon glow-purple">
+                        <i class="fas fa-id-card"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h1>CardCraft</h1>
+                        <p>Cartões Digitais Profissionais</p>
+                    </div>
+                </div>
+                <div class="header-badge">
+                    <i class="fas fa-bolt text-yellow"></i>
+                    <span>Pré-visualização em tempo real</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <div class="main-grid">
+            
+            <!-- Editor Panel -->
+            <div class="editor-space">
+                <div class="editor-panel glass">
+                    <h2 class="editor-title">
+                        <i class="fas fa-wand-magic-sparkles text-purple"></i>
+                        Editor do Cartão
+                    </h2>
+
+                    <!-- Personal Info Accordion -->
+                    <div class="accordion-item">
+                        <div class="accordion-header active" onclick="toggleAccordion(this)">
+                            <div class="accordion-title">
+                                <div class="accordion-title-icon bg-purple-gradient">
+                                    <i class="fas fa-user text-purple"></i>
+                                </div>
+                                <span>Informações Pessoais</span>
+                            </div>
+                            <i class="fas fa-chevron-down accordion-icon"></i>
+                        </div>
+                        <div class="accordion-content open">
+                            <div style="padding: 16px;">
+                                <div class="form-group">
+                                    <label class="section-label">Nome Completo</label>
+                                    <input type="text" id="nome" class="input-modern" placeholder="Seu nome profissional">
+                                </div>
+                                <div class="form-group">
+                                    <label class="section-label">Cargo / Profissão</label>
+                                    <input type="text" id="cargo" class="input-modern" placeholder="Ex: Designer UX/UI">
+                                </div>
+                                <div class="form-group">
+                                    <label class="section-label">Foto de Perfil</label>
+                                    <div class="photo-upload-zone" onclick="document.getElementById('foto-upload').click()">
+                                        <input type="file" id="foto-upload" accept="image/*" class="hidden" onchange="handlePhotoUpload(event)">
+                                        <div id="upload-placeholder">
+                                            <i class="fas fa-cloud-upload-alt text-purple" style="font-size: 32px; margin-bottom: 8px;"></i>
+                                            <p style="font-size: 14px; color: rgba(255,255,255,0.5);">Clique ou arraste uma imagem</p>
+                                            <p style="font-size: 12px; color: rgba(255,255,255,0.3); margin-top: 4px;">PNG, JPG até 5MB</p>
+                                        </div>
+                                        <div id="upload-preview" class="hidden">
+                                            <img id="uploaded-image-preview" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; margin: 0 auto 8px;">
+                                            <p style="font-size: 14px; color: #4ade80;"><i class="fas fa-check-circle"></i> Foto carregada</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Info Accordion -->
+                    <div class="accordion-item">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <div class="accordion-title">
+                                <div class="accordion-title-icon bg-green-gradient">
+                                    <i class="fas fa-address-book text-green"></i>
+                                </div>
+                                <span>Contatos</span>
+                            </div>
+                            <i class="fas fa-chevron-down accordion-icon"></i>
+                        </div>
+                        <div class="accordion-content">
+                            <div style="padding: 16px;">
+                                <div class="form-group">
+                                    <label class="section-label"><i class="fas fa-envelope" style="margin-right: 8px;"></i>Email</label>
+                                    <input type="email" id="email" class="input-modern" placeholder="seu@email.com">
+                                </div>
+                                <div class="form-group">
+                                    <label class="section-label"><i class="fab fa-whatsapp" style="margin-right: 8px;"></i>WhatsApp</label>
+                                    <div class="input-row">
+                                        <select id="whatsapp-pais" class="input-modern">
+                                            <option value="+55">🇧🇷 +55</option>
+                                            <option value="+1">🇺🇸 +1</option>
+                                            <option value="+351">🇵🇹 +351</option>
+                                            <option value="+44">🇬🇧 +44</option>
+                                            <option value="+34">🇪🇸 +34</option>
+                                        </select>
+                                        <input type="tel" id="whatsapp" class="input-modern" placeholder="11999999999">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="section-label"><i class="fas fa-phone" style="margin-right: 8px;"></i>Telefone</label>
+                                    <input type="tel" id="telefone" class="input-modern" placeholder="(11) 3333-3333">
+                                </div>
+                                <div class="form-group">
+                                    <label class="section-label"><i class="fas fa-globe" style="margin-right: 8px;"></i>Website</label>
+                                    <input type="url" id="website" class="input-modern" placeholder="https://seusite.com">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Social Media Accordion -->
+                    <div class="accordion-item">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <div class="accordion-title">
+                                <div class="accordion-title-icon bg-pink-gradient">
+                                    <i class="fas fa-share-nodes text-pink"></i>
+                                </div>
+                                <span>Redes Sociais</span>
+                            </div>
+                            <i class="fas fa-chevron-down accordion-icon"></i>
+                        </div>
+                        <div class="accordion-content">
+                            <div style="padding: 16px;">
+                                <div class="form-group">
+                                    <label class="section-label"><i class="fab fa-instagram text-pink" style="margin-right: 8px;"></i>Instagram</label>
+                                    <input type="text" id="instagram" class="input-modern" placeholder="@seuusuario">
+                                </div>
+                                <div class="form-group">
+                                    <label class="section-label"><i class="fab fa-linkedin text-blue" style="margin-right: 8px;"></i>LinkedIn</label>
+                                    <input type="text" id="linkedin" class="input-modern" placeholder="linkedin.com/in/seuusuario">
+                                </div>
+                                <div class="form-group">
+                                    <label class="section-label"><i class="fab fa-github text-gray" style="margin-right: 8px;"></i>GitHub</label>
+                                    <input type="text" id="github" class="input-modern" placeholder="github.com/seuusuario">
+                                </div>
+                                <div class="form-group">
+                                    <label class="section-label"><i class="fab fa-youtube text-red" style="margin-right: 8px;"></i>YouTube</label>
+                                    <input type="text" id="youtube" class="input-modern" placeholder="youtube.com/@seucanal">
+                                </div>
+                                <div class="form-group">
+                                    <label class="section-label"><i class="fab fa-tiktok" style="margin-right: 8px;"></i>TikTok</label>
+                                    <input type="text" id="tiktok" class="input-modern" placeholder="@seuusuario">
+                                </div>
+                                <div class="form-group">
+                                    <label class="section-label"><i class="fab fa-twitter text-sky" style="margin-right: 8px;"></i>X (Twitter)</label>
+                                    <input type="text" id="twitter" class="input-modern" placeholder="@seuusuario">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Appearance Accordion -->
+                    <div class="accordion-item">
+                        <div class="accordion-header" onclick="toggleAccordion(this)">
+                            <div class="accordion-title">
+                                <div class="accordion-title-icon bg-orange-gradient">
+                                    <i class="fas fa-palette text-orange"></i>
+                                </div>
+                                <span>Aparência</span>
+                            </div>
+                            <i class="fas fa-chevron-down accordion-icon"></i>
+                        </div>
+                        <div class="accordion-content">
+                            <div style="padding: 16px;">
+                                <div class="form-group">
+                                    <label class="section-label">Tema do Cartão</label>
+                                    <div class="theme-grid">
+                                        <button onclick="setTheme('dark')" class="theme-btn theme-dark active" data-theme="dark">
+                                            <div class="theme-btn-inner theme-dark-inner"></div>
+                                        </button>
+                                        <button onclick="setTheme('purple')" class="theme-btn theme-purple" data-theme="purple">
+                                            <div class="theme-btn-inner theme-purple-inner"></div>
+                                        </button>
+                                        <button onclick="setTheme('ocean')" class="theme-btn theme-ocean" data-theme="ocean">
+                                            <div class="theme-btn-inner theme-ocean-inner"></div>
+                                        </button>
+                                        <button onclick="setTheme('sunset')" class="theme-btn theme-sunset" data-theme="sunset">
+                                            <div class="theme-btn-inner theme-sunset-inner"></div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="section-label">Ou personalize as cores</label>
+                                    <div class="color-pickers-row">
+                                        <div class="color-picker-item">
+                                            <p>Fundo 1</p>
+                                            <div class="color-picker-wrapper">
+                                                <input type="color" id="bg-color1" value="#1e1e2f" onchange="applyCustomColors()">
+                                            </div>
+                                        </div>
+                                        <div class="color-picker-item">
+                                            <p>Fundo 2</p>
+                                            <div class="color-picker-wrapper">
+                                                <input type="color" id="bg-color2" value="#2d2d44" onchange="applyCustomColors()">
+                                            </div>
+                                        </div>
+                                        <div class="color-picker-item">
+                                            <p>Destaque</p>
+                                            <div class="color-picker-wrapper">
+                                                <input type="color" id="accent-color" value="#8b5cf6" onchange="applyCustomColors()">
+                                            </div>
+                                        </div>
+                                        <div class="color-picker-item">
+                                            <p>Texto</p>
+                                            <div class="color-picker-wrapper">
+                                                <input type="color" id="text-color" value="#ffffff" onchange="applyCustomColors()">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="section-label">Estilo dos Botões</label>
+                                    <div class="btn-style-row">
+                                        <button onclick="setButtonStyle('rounded')" class="btn-style-btn active" data-style="rounded" style="border-radius: 12px;">Arredondado</button>
+                                        <button onclick="setButtonStyle('pill')" class="btn-style-btn" data-style="pill" style="border-radius: 9999px;">Pílula</button>
+                                        <button onclick="setButtonStyle('square')" class="btn-style-btn" data-style="square" style="border-radius: 6px;">Quadrado</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Buttons -->
+                <div class="export-section glass">
+                    <h3 class="export-title">
+                        <i class="fas fa-download text-purple"></i>
+                        Exportar Cartão
+                    </h3>
+                    <div class="export-grid">
+                        <button onclick="exportHTML()" class="export-btn export-btn-blue">
+                            <i class="fas fa-code"></i>
+                            HTML
+                        </button>
+                        <button onclick="exportPDF()" class="export-btn export-btn-red">
+                            <i class="fas fa-file-pdf"></i>
+                            PDF
+                        </button>
+                        <button onclick="exportJPG()" class="export-btn export-btn-green">
+                            <i class="fas fa-image"></i>
+                            JPG
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview Panel -->
+            <div class="preview-panel glass">
+                <div class="preview-header">
+                    <h2 class="preview-title">
+                        <i class="fas fa-eye text-purple"></i>
+                        Pré-visualização
+                    </h2>
+                    <div class="live-indicator">
+                        <div class="live-dot"></div>
+                        Ao vivo
+                    </div>
+                </div>
+
+                <!-- Phone Mockup -->
+                <div class="phone-container">
+                    <div class="phone-frame">
+                        <div class="phone-screen">
+                            <div class="phone-notch"></div>
+                            
+                            <!-- Card Content -->
+                            <div id="preview-card" class="card-content card-preview">
+                                <div class="card-inner">
+                                    <!-- Profile Photo -->
+                                    <div class="profile-photo">
+                                        <div class="profile-ring animate-pulse-glow">
+                                            <img id="preview-foto" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMzNzM3NTAiLz48dGV4dCB4PSI1MCUiIHk9IjUwJSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzAiIGZpbGw9IiM4YjVjZjYiPjwvdGV4dD48L3N2Zz4=" alt="Foto">
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Name & Title -->
+                                    <h3 id="preview-nome" class="profile-name">Seu Nome</h3>
+                                    <p id="preview-cargo" class="profile-title">Sua Profissão</p>
+                                    
+                                    <!-- Contact Buttons -->
+                                    <div id="preview-links" class="links-container">
+                                        <!-- Links will be generated here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+        <footer class="footer-clean py-8 text-center text-gray-500/50">
+            <p class="text-[10px] uppercase tracking-[0.2em] opacity-50">&copy; 2026 4U.IA.BR - Todos os direitos reservados</p>
+        </footer>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toast-message">Exportado com sucesso!</span>
+    </div>
+
+    <script>
+        // State
+        let currentTheme = 'dark';
+        let currentButtonStyle = 'rounded';
+        let photoData = null;
+
+        const themes = {
+            dark: { bg1: '#1e1e2f', bg2: '#2d2d44', accent: '#8b5cf6', text: '#ffffff' },
+            purple: { bg1: '#2e1065', bg2: '#4c1d95', accent: '#c084fc', text: '#ffffff' },
+            ocean: { bg1: '#0c4a6e', bg2: '#0e7490', accent: '#22d3ee', text: '#ffffff' },
+            sunset: { bg1: '#7c2d12', bg2: '#be185d', accent: '#fb923c', text: '#ffffff' }
+        };
+
+        const socialColors = {
+            instagram: '#E4405F',
+            linkedin: '#0077b5',
+            github: '#333333',
+            youtube: '#ff0000',
+            tiktok: '#000000',
+            twitter: '#1da1f2',
+            whatsapp: '#25d366',
+            email: '#ea4335',
+            telefone: '#6366f1',
+            website: '#8b5cf6'
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Add event listeners to all inputs
+            const inputs = document.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                input.addEventListener('input', updatePreview);
+            });
+            
+            // Setup drag and drop for photo
+            const uploadZone = document.querySelector('.photo-upload-zone');
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragover');
+            });
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    processPhoto(file);
+                }
+            });
+
+            updatePreview();
+        });
+
+        function toggleAccordion(header) {
+            const content = header.nextElementSibling;
+            const isOpen = content.classList.contains('open');
+            
+            // Close all accordions
+            document.querySelectorAll('.accordion-content').forEach(c => c.classList.remove('open'));
+            document.querySelectorAll('.accordion-header').forEach(h => h.classList.remove('active'));
+            
+            // Open clicked one if it was closed
+            if (!isOpen) {
+                content.classList.add('open');
+                header.classList.add('active');
+            }
+        }
+
+        function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processPhoto(file);
+            }
+        }
+
+        function processPhoto(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                photoData = e.target.result;
+                document.getElementById('upload-placeholder').classList.add('hidden');
+                document.getElementById('upload-preview').classList.remove('hidden');
+                document.getElementById('uploaded-image-preview').src = photoData;
+                updatePreview();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function updatePreview() {
+            const nome = document.getElementById('nome').value || 'Seu Nome';
+            const cargo = document.getElementById('cargo').value || 'Sua Profissão';
+            
+            document.getElementById('preview-nome').textContent = nome;
+            document.getElementById('preview-cargo').textContent = cargo;
+            
+            if (photoData) {
+                document.getElementById('preview-foto').src = photoData;
+            }
+            
+            generateLinks();
+        }
+
+        function generateLinks() {
+            const linksContainer = document.getElementById('preview-links');
+            linksContainer.innerHTML = '';
+            
+            const links = [
+                { id: 'whatsapp', icon: 'fab fa-whatsapp', label: 'WhatsApp', prefix: 'https://wa.me/' },
+                { id: 'email', icon: 'fas fa-envelope', label: 'Email', prefix: 'mailto:' },
+                { id: 'telefone', icon: 'fas fa-phone', label: 'Telefone', prefix: 'tel:' },
+                { id: 'website', icon: 'fas fa-globe', label: 'Website', prefix: '' },
+                { id: 'instagram', icon: 'fab fa-instagram', label: 'Instagram', prefix: 'https://instagram.com/' },
+                { id: 'linkedin', icon: 'fab fa-linkedin', label: 'LinkedIn', prefix: 'https://linkedin.com/in/' },
+                { id: 'github', icon: 'fab fa-github', label: 'GitHub', prefix: 'https://github.com/' },
+                { id: 'youtube', icon: 'fab fa-youtube', label: 'YouTube', prefix: 'https://youtube.com/' },
+                { id: 'tiktok', icon: 'fab fa-tiktok', label: 'TikTok', prefix: 'https://tiktok.com/' },
+                { id: 'twitter', icon: 'fab fa-twitter', label: 'X (Twitter)', prefix: 'https://twitter.com/' }
+            ];
+
+            const borderRadius = {
+                rounded: '12px',
+                pill: '9999px',
+                square: '6px'
+            };
+
+            links.forEach(link => {
+                let value = document.getElementById(link.id)?.value;
+                
+                if (link.id === 'whatsapp' && value) {
+                    const pais = document.getElementById('whatsapp-pais').value;
+                    value = pais.replace('+', '') + value.replace(/\D/g, '');
+                }
+                
+                if (value) {
+                    const btn = document.createElement('a');
+                    btn.href = link.id === 'website' ? (value.startsWith('http') ? value : 'https://' + value) : link.prefix + value.replace('@', '');
+                    btn.target = '_blank';
+                    btn.className = 'social-btn';
+                    btn.style.borderRadius = borderRadius[currentButtonStyle];
+                    btn.style.backgroundColor = socialColors[link.id];
+                    
+                    btn.innerHTML = '<i class="' + link.icon + '"></i><span>' + link.label + '</span>';
+                    
+                    linksContainer.appendChild(btn);
+                }
+            });
+
+            // If no links, show placeholder
+            if (linksContainer.children.length === 0) {
+                linksContainer.innerHTML = '<div class="empty-links"><i class="fas fa-link"></i><p>Adicione suas informações<br>para ver os links aqui</p></div>';
+            }
+        }
+
+        function setTheme(themeName) {
+            currentTheme = themeName;
+            const theme = themes[themeName];
+            
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('[data-theme="' + themeName + '"]').classList.add('active');
+            
+            applyTheme(theme);
+        }
+
+        function applyTheme(theme) {
+            const card = document.getElementById('preview-card');
+            card.style.background = 'linear-gradient(145deg, ' + theme.bg1 + ' 0%, ' + theme.bg2 + ' 100%)';
+            card.style.color = theme.text;
+            
+            document.getElementById('bg-color1').value = theme.bg1;
+            document.getElementById('bg-color2').value = theme.bg2;
+            document.getElementById('accent-color').value = theme.accent;
+            document.getElementById('text-color').value = theme.text;
+        }
+
+        function applyCustomColors() {
+            const theme = {
+                bg1: document.getElementById('bg-color1').value,
+                bg2: document.getElementById('bg-color2').value,
+                accent: document.getElementById('accent-color').value,
+                text: document.getElementById('text-color').value
+            };
+            
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            applyTheme(theme);
+        }
+
+        function setButtonStyle(style) {
+            currentButtonStyle = style;
+            
+            document.querySelectorAll('.btn-style-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector('[data-style="' + style + '"]').classList.add('active');
+            
+            generateLinks();
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').textContent = message;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function exportHTML() {
+            const card = document.getElementById('preview-card');
+            const nome = document.getElementById('nome').value || 'Cartao';
+            const bg1 = document.getElementById('bg-color1').value;
+            const bg2 = document.getElementById('bg-color2').value;
+            
+            const html = '<!DOCTYPE html>\n<html lang="pt-BR">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>' + nome + ' - Cartão Digital</title>\n    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />\n    <style>\n        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Segoe UI", sans-serif; }\n        body { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0f0f1a; }\n        .card { width: 100%; max-width: 400px; padding: 2rem; border-radius: 1.5rem; background: linear-gradient(145deg, ' + bg1 + ' 0%, ' + bg2 + ' 100%); color: #ffffff; }\n        .card-inner { display: flex; flex-direction: column; align-items: center; text-align: center; }\n        .profile-ring { background: linear-gradient(135deg, #8b5cf6, #ec4899, #f59e0b, #10b981, #3b82f6, #8b5cf6); padding: 4px; border-radius: 50%; margin-bottom: 1rem; }\n        .profile-img { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; background: #373750; }\n        h1 { font-size: 1.25rem; font-weight: bold; margin-bottom: 0.25rem; }\n        .subtitle { font-size: 0.875rem; color: rgba(255,255,255,0.6); margin-bottom: 1.5rem; }\n        .links { width: 100%; display: flex; flex-direction: column; gap: 0.75rem; }\n        .link-btn { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; color: white; text-decoration: none; font-weight: 500; transition: transform 0.2s, box-shadow 0.2s; border-radius: 12px; }\n        .link-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }\n        .link-btn i { width: 24px; font-size: 1.125rem; }\n    </style>\n</head>\n<body>\n    <div class="card">\n        <div class="card-inner">\n            <div class="profile-ring">\n                <img src="' + (photoData || 'https://via.placeholder.com/96') + '" alt="Foto" class="profile-img">\n            </div>\n            <h1>' + document.getElementById('preview-nome').textContent + '</h1>\n            <p class="subtitle">' + document.getElementById('preview-cargo').textContent + '</p>\n            <div class="links">\n                ' + card.querySelector('#preview-links').innerHTML.replace(/class="social-btn"/g, 'class="link-btn"') + '\n            </div>\n        </div>\n    </div>\n</body>\n</html>';
+
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = nome.replace(/\s+/g, '_') + '_cartao.html';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showToast('HTML exportado com sucesso!');
+        }
+
+        async function exportJPG() {
+            const card = document.getElementById('preview-card');
+            
+            try {
+                const canvas = await html2canvas(card, { 
+                    scale: 2,
+                    backgroundColor: null,
+                    useCORS: true,
+                    logging: false
+                });
+                
+                const link = document.createElement('a');
+                const nome = document.getElementById('nome').value || 'Cartao';
+                link.download = nome.replace(/\s+/g, '_') + '_cartao.jpg';
+                link.href = canvas.toDataURL('image/jpeg', 0.9);
+                link.click();
+                
+                showToast('JPG exportado com sucesso!');
+            } catch (error) {
+                console.error('Erro ao exportar JPG:', error);
+                showToast('Erro ao exportar. Tente novamente.');
+            }
+        }
+
+        async function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const card = document.getElementById('preview-card');
+            
+            try {
+                // Capture the card with correct scale
+                const canvas = await html2canvas(card, { 
+                    scale: 3,
+                    backgroundColor: null,
+                    useCORS: true,
+                    logging: false
+                });
+                
+                // Get the actual dimensions of the card
+                const cardWidth = card.offsetWidth;
+                const cardHeight = card.offsetHeight;
+                
+                // Calculate aspect ratio
+                const aspectRatio = cardHeight / cardWidth;
+                
+                // PDF dimensions in mm (width fixed, height based on aspect ratio)
+                const pdfWidth = 100;
+                const pdfHeight = pdfWidth * aspectRatio;
+                
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF({
+                    orientation: pdfHeight > pdfWidth ? 'portrait' : 'landscape',
+                    unit: 'mm',
+                    format: [pdfWidth, pdfHeight]
+                });
+                
+                // Add the image maintaining aspect ratio
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                
+                // Calculate scale factors for link positioning
+                const scaleX = pdfWidth / cardWidth;
+                const scaleY = pdfHeight / cardHeight;
+                
+                // Get all link buttons and add clickable areas
+                const linkButtons = card.querySelectorAll('.social-btn');
+                linkButtons.forEach(btn => {
+                    const rect = btn.getBoundingClientRect();
+                    const cardRect = card.getBoundingClientRect();
+                    
+                    // Calculate position relative to card
+                    const relX = rect.left - cardRect.left;
+                    const relY = rect.top - cardRect.top;
+                    const btnWidth = rect.width;
+                    const btnHeight = rect.height;
+                    
+                    // Convert to PDF coordinates
+                    const pdfX = relX * scaleX;
+                    const pdfY = relY * scaleY;
+                    const pdfBtnWidth = btnWidth * scaleX;
+                    const pdfBtnHeight = btnHeight * scaleY;
+                    
+                    // Get the href from the button
+                    const href = btn.getAttribute('href');
+                    
+                    if (href) {
+                        // Add clickable link annotation
+                        pdf.link(pdfX, pdfY, pdfBtnWidth, pdfBtnHeight, { url: href });
+                    }
+                });
+                
+                const nome = document.getElementById('nome').value || 'Cartao';
+                pdf.save(nome.replace(/\s+/g, '_') + '_cartao.pdf');
+                
+                showToast('PDF com links clicáveis exportado!');
+            } catch (error) {
+                console.error('Erro ao exportar PDF:', error);
+                showToast('Erro ao exportar. Tente novamente.');
+            }
+        }
+    </script>
+</body>
+</html>
